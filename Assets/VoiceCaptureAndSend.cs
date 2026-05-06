@@ -1,0 +1,1100 @@
+// =============================================================================
+// VoiceCaptureAndSend.cs
+// Records voice → sends to server → server runs Whisper (auto-translates to
+// English) → LLM decides one of 5 actions → Unity dispatches the result.
+//
+// 5 actions:
+//   generate_model   – 3D object generation via Meshy
+//   create_poster    – poster / image generation
+//   set_wall_texture – texture generation & application
+//   run_code         – everything else (runtime C# script)
+//   no_action        – nothing to do
+// =============================================================================
+
+using UnityEngine;
+using UnityEngine.Networking;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using TMPro;
+using UnityEngine.XR;
+
+public class VoiceCaptureAndSend : MonoBehaviour
+{
+    // ─────────────────────────────────────────────────────────────────────────
+    // Inspector fields
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Header("Microphone")]
+    public string microphoneDevice;
+    public int    sampleRate             = 16000;
+    public int    maxRecordLengthSeconds = 600;
+
+    [Header("Server")]
+    public string serverUrl   = "http://localhost:8000/transcribe";
+    public string textTo3dUrl = "http://localhost:8000/api/text-to-3d";
+
+    [Header("Optional Systems")]
+    public RuntimeModelSpawner  modelSpawner;
+    public PosterSpawner        posterSpawner;
+    public SceneStateStore      stateStore;
+
+    [Header("Gaze")]
+    public GazeTargetInteractor gazeInteractor;
+
+    [Header("Confirmation Dialog")]
+    public ConfirmationDialog confirmationDialog;
+
+    [Header("UI Feedback (optional)")]
+    public TextMeshProUGUI aiIntentText;
+    public TextMeshProUGUI transcriptText;
+    public TextMeshProUGUI recordingStatusText;
+
+    [Header("Keyboard Controls")]
+    public KeyCode startKey = KeyCode.R;
+    public KeyCode stopKey  = KeyCode.T;
+
+    [Header("Poster Defaults")]
+    public float defaultPosterWidthM  = 1f;
+    public float defaultPosterHeightM = 1f;
+
+    [Header("UI Settings")]
+    public float completedJobLingerSeconds = 7f;
+    public float tickUiInterval            = 0.25f;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Private state
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private AudioClip recordedClip;
+    private bool      isRecording = false;
+
+    private InputDevice rightController;
+    private bool        lastAPressed = false;
+
+    private string _capturedTargetNameAtStop = null;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Job tracker
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private int _jobSeq = 0;
+
+    private class Job
+    {
+        public int        id;
+        public string     type;
+        public float      startTime;
+        public string     status;
+        public int        progress;
+        public GameObject boundTarget;
+        public float ElapsedSeconds => Mathf.Max(0f, Time.realtimeSinceStartup - startTime);
+    }
+
+    private class CompletedJob
+    {
+        public int    id;
+        public string type;
+        public string targetName;
+        public bool   ok;
+        public float  startTime;
+        public float  finishTime;
+        public string detail;
+    }
+
+    private readonly Dictionary<int, Job>       _jobs              = new Dictionary<int, Job>();
+    private readonly Dictionary<int, Coroutine> _modelPollRoutines = new Dictionary<int, Coroutine>();
+    private readonly List<CompletedJob>         _completedJobs     = new List<CompletedJob>();
+    private string _headerLine = "";
+    private float  _nextTickTime = 0f;
+
+    private int StartJob(string type, string initialStatus, GameObject boundTarget, float startTimeOverride = -1f)
+    {
+        int id = ++_jobSeq;
+        _jobs[id] = new Job
+        {
+            id         = id,
+            type       = type,
+            startTime  = startTimeOverride >= 0f ? startTimeOverride : Time.realtimeSinceStartup,
+            status     = initialStatus,
+            progress   = 0,
+            boundTarget = boundTarget
+        };
+        RefreshJobsUI();
+        return id;
+    }
+
+    private void UpdateJob(int id, string status, int progress = -1)
+    {
+        if (!_jobs.TryGetValue(id, out var j)) return;
+        j.status = status ?? "";
+        if (progress >= 0) j.progress = progress;
+        RefreshJobsUI();
+    }
+
+    private void FinishJob(int id, bool ok, string reason = "")
+    {
+        if (!_jobs.TryGetValue(id, out var j)) return;
+        float jobStartTime = j.startTime;
+        _jobs.Remove(id);
+
+        if (_modelPollRoutines.TryGetValue(id, out var co))
+        {
+            if (co != null) StopCoroutine(co);
+            _modelPollRoutines.Remove(id);
+        }
+
+        _completedJobs.Add(new CompletedJob
+        {
+            id         = id,
+            type       = j.type,
+            targetName = j.boundTarget != null ? j.boundTarget.name : "?",
+            ok         = ok,
+            startTime  = jobStartTime,
+            finishTime = Time.realtimeSinceStartup,
+            detail     = string.IsNullOrWhiteSpace(reason) ? j.status : reason
+        });
+
+        RefreshJobsUI();
+    }
+
+    private IEnumerator FinishJobNextFrame(int jobId, bool ok, string reason = "")
+    {
+        float captured = Time.realtimeSinceStartup;
+        yield return null;
+        if (!_jobs.TryGetValue(jobId, out var j)) yield break;
+
+        _jobs.Remove(jobId);
+        if (_modelPollRoutines.TryGetValue(jobId, out var co))
+        {
+            if (co != null) StopCoroutine(co);
+            _modelPollRoutines.Remove(jobId);
+        }
+
+        _completedJobs.Add(new CompletedJob
+        {
+            id         = jobId,
+            type       = j.type,
+            targetName = j.boundTarget != null ? j.boundTarget.name : "?",
+            ok         = ok,
+            startTime  = j.startTime,
+            finishTime = captured,
+            detail     = string.IsNullOrWhiteSpace(reason) ? j.status : reason
+        });
+
+        RefreshJobsUI();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // UI helpers
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private void SetHeaderLine(string msg)
+    {
+        _headerLine = msg;
+        RefreshJobsUI();
+    }
+
+    private void RefreshJobsUI()
+    {
+        if (recordingStatusText == null) return;
+
+        float now = Time.realtimeSinceStartup;
+        _completedJobs.RemoveAll(c => now - c.finishTime > completedJobLingerSeconds);
+
+        var sb = new StringBuilder();
+
+        if (!string.IsNullOrEmpty(_headerLine))
+            sb.AppendLine(_headerLine);
+
+        bool hasRunning = _jobs.Count > 0;
+        bool hasDone    = _completedJobs.Count > 0;
+
+        if (!hasRunning && !hasDone)
+        {
+            if (string.IsNullOrEmpty(_headerLine))
+                sb.Append("Ready.");
+        }
+        else
+        {
+            if (hasRunning)
+            {
+                sb.AppendLine($"-- {_jobs.Count} running --");
+                foreach (var kv in _jobs)
+                {
+                    var j = kv.Value;
+                    string t = j.boundTarget != null ? j.boundTarget.name : "?";
+                    sb.AppendLine($"[RUN] #{j.id} {j.type}  [{t}]  {j.progress}%  {j.ElapsedSeconds:0.0}s  ({j.status})");
+                }
+            }
+
+            if (hasDone)
+            {
+                if (hasRunning) sb.AppendLine("-- done --");
+                foreach (var c in _completedJobs)
+                {
+                    string icon = c.ok ? "Okay" : "Fail";
+                    float  took = c.finishTime - c.startTime;
+                    string ts   = took < 0.05f ? "<0.1s" : $"{took:0.0}s";
+                    sb.AppendLine($"{icon} #{c.id} {c.type}  [{c.targetName}]  {c.detail}  {ts}");
+                }
+            }
+        }
+
+        recordingStatusText.text = sb.ToString().TrimEnd();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // JSON models
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [System.Serializable]
+    public class Command
+    {
+        // shared
+        public string action;
+
+        // generate_model
+        public string prompt;
+        public string name;
+        public string stage;
+        public string art_style;
+
+        // create_poster
+        public string image_prompt;
+        public float  width_m;
+        public float  height_m;
+
+        // set_wall_texture
+        public string texture_prompt;
+        public float  tile_scale;
+
+        // run_code
+        public string   behaviour_prompt;
+        public string   target;             // fallback target name for run_code
+        public string[] targets;
+        public string[] reference_objects;
+        public string   relation;
+    }
+
+    [System.Serializable]
+    private class TranscribeGateResponse
+    {
+        public string    transcript;
+        public bool      requires_confirmation;
+        public string    session_id;
+        public string    confirmation_message;
+        public Command   command;
+        public Command[] commands;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Scene object name collector
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns a JSON array string of every root-level and named GameObject in
+    /// the scene so the server can ground LLM object references in real names.
+    /// Skips unnamed, hidden, or internal Unity objects.
+    /// </summary>
+    private string CollectSceneObjectNamesJson()
+    {
+        var names = new System.Collections.Generic.List<string>();
+        foreach (var go in FindObjectsByType<GameObject>(FindObjectsSortMode.None))
+        {
+            // Skip objects that are clearly internal / uninteresting
+            if (go == null) continue;
+            string n = go.name;
+            if (string.IsNullOrWhiteSpace(n))          continue;
+            if (n.StartsWith("__"))                     continue;  // Unity internals
+            if (!go.activeInHierarchy)                  continue;  // hidden objects
+            names.Add(n.Replace("\"", "\\\"")); // escape any quotes
+        }
+        // Deduplicate and sort for readability
+        var unique = new System.Collections.Generic.HashSet<string>(names);
+        var sorted = new System.Collections.Generic.List<string>(unique);
+        sorted.Sort();
+        return "[" + string.Join(",", sorted.ConvertAll(s => "\"" + s + "\"")) + "]";
+    }
+
+    [System.Serializable]
+    private class TextTo3DRequest
+    {
+        public string prompt;
+        public string name;
+        public string stage;
+        public string art_style;
+    }
+
+    [System.Serializable]
+    private class TextTo3DProgressResponse
+    {
+        public string status;
+        public int    progress;
+        public string downloadUrl;
+        public string message;
+    }
+
+    [System.Serializable]
+    private class PosterImageRequest
+    {
+        public string prompt;
+        public int    width_px  = 1024;
+        public int    height_px = 1024;
+    }
+
+    [System.Serializable]
+    private class PosterImageResponse
+    {
+        public string image_url;
+        public string message;
+    }
+
+    [System.Serializable]
+    private class TextureImageRequest
+    {
+        public string prompt;
+        public int    size_px = 1024;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Wall anchor (needed by poster & texture)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [System.Serializable]
+    public struct WallAnchor
+    {
+        public Transform wall;
+        public Vector3   localPoint;
+        public Vector3   localNormal;
+
+        public static WallAnchor FromHit(RaycastHit hit)
+        {
+            var a = new WallAnchor();
+            a.wall = hit.collider != null ? hit.collider.transform : null;
+            if (a.wall != null)
+            {
+                a.localPoint  = a.wall.InverseTransformPoint(hit.point);
+                a.localNormal = a.wall.InverseTransformDirection(hit.normal);
+            }
+            return a;
+        }
+
+        public bool   IsValid()      => wall != null;
+        public Vector3 WorldPoint()  => wall != null ? wall.TransformPoint(localPoint) : Vector3.zero;
+        public Vector3 WorldNormal() => wall != null ? wall.TransformDirection(localNormal).normalized : Vector3.forward;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Unity lifecycle
+    // ─────────────────────────────────────────────────────────────────────────
+
+    void Start()
+    {
+        if (Microphone.devices.Length > 0)
+        {
+            microphoneDevice = Microphone.devices[0];
+            Debug.Log("[VoiceCaptureAndSend] Using microphone: " + microphoneDevice);
+        }
+        else
+        {
+            Debug.LogError("[VoiceCaptureAndSend] No microphone found.");
+            SetHeaderLine("No microphone found.");
+        }
+
+        if (gazeInteractor == null) gazeInteractor = FindFirstObjectByType<GazeTargetInteractor>();
+        if (stateStore    == null) stateStore      = FindFirstObjectByType<SceneStateStore>();
+        if (modelSpawner  == null) modelSpawner    = FindFirstObjectByType<RuntimeModelSpawner>();
+        if (posterSpawner == null) posterSpawner   = FindFirstObjectByType<PosterSpawner>();
+
+        if (AICodeCommandHandler.Instance == null)
+            Debug.LogWarning("[VoiceCaptureAndSend] AICodeCommandHandler not found in scene.");
+
+        SetHeaderLine("Ready. Press R to record / T to stop.");
+        RefreshJobsUI();
+
+        var devices = new List<InputDevice>();
+        InputDevices.GetDevicesAtXRNode(XRNode.RightHand, devices);
+        if (devices.Count > 0) rightController = devices[0];
+    }
+
+    void Update()
+    {
+        if (Input.GetKeyDown(startKey)) StartListening();
+        if (Input.GetKeyDown(stopKey))  StopListening();
+
+        if (rightController.isValid)
+        {
+            if (rightController.TryGetFeatureValue(CommonUsages.primaryButton, out bool aPressed))
+            {
+                if (aPressed && !lastAPressed)
+                {
+                    if (!isRecording) StartListening();
+                    else              StopListening();
+                }
+                lastAPressed = aPressed;
+            }
+        }
+
+        if ((_jobs.Count > 0 || _completedJobs.Count > 0) && Time.realtimeSinceStartup >= _nextTickTime)
+        {
+            _nextTickTime = Time.realtimeSinceStartup + tickUiInterval;
+            RefreshJobsUI();
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Recording
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public void StartListening()  => StartRecording();
+    public void StopListening()   => StopRecordingAndSend();
+
+    public void StartRecording()
+    {
+        if (isRecording) { SetHeaderLine("Already recording..."); return; }
+        if (string.IsNullOrEmpty(microphoneDevice)) { SetHeaderLine("No microphone selected."); return; }
+
+        _capturedTargetNameAtStop = null;
+
+        // Continuously capture screenshots while recording — last one wins at stop
+        _screenshotLoopCoroutine = StartCoroutine(CaptureScreenshotLoop());
+
+        recordedClip = Microphone.Start(microphoneDevice, false, maxRecordLengthSeconds, sampleRate);
+        isRecording = true;
+        SetHeaderLine("Recording... (press again to stop)");
+    }
+
+    private Coroutine _screenshotLoopCoroutine = null;
+    private readonly System.Collections.Generic.List<string> _capturedScreenshots = new System.Collections.Generic.List<string>();
+
+    // Takes a screenshot every 2 seconds while recording.
+    // All captures are collected — server receives all of them for a complete scene picture.
+    private IEnumerator CaptureScreenshotLoop()
+    {
+        _capturedScreenshots.Clear();
+
+        while (true)
+        {
+            yield return new WaitForEndOfFrame();
+
+            try
+            {
+                int w = Screen.width;
+                int h = Screen.height;
+                var tex = new Texture2D(w, h, TextureFormat.RGB24, false);
+                tex.ReadPixels(new Rect(0, 0, w, h), 0, 0);
+                tex.Apply();
+
+                var resized = ResizeTexture(tex, 512, 512);
+                string b64 = System.Convert.ToBase64String(resized.EncodeToJPG(60));
+                _capturedScreenshots.Add(b64);
+                Destroy(tex);
+                Destroy(resized);
+
+                Debug.Log($"[VoiceCaptureAndSend] Screenshot captured ({_capturedScreenshots.Count} total)");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning("[VoiceCaptureAndSend] Screenshot capture failed: " + e.Message);
+            }
+
+            yield return new WaitForSeconds(2f);
+        }
+    }
+
+    private Texture2D ResizeTexture(Texture2D source, int targetWidth, int targetHeight)
+    {
+        var rt = RenderTexture.GetTemporary(targetWidth, targetHeight, 0, RenderTextureFormat.ARGB32);
+        rt.filterMode = FilterMode.Bilinear;
+        RenderTexture.active = rt;
+        Graphics.Blit(source, rt);
+        var result = new Texture2D(targetWidth, targetHeight, TextureFormat.RGB24, false);
+        result.ReadPixels(new Rect(0, 0, targetWidth, targetHeight), 0, 0);
+        result.Apply();
+        RenderTexture.active = null;
+        RenderTexture.ReleaseTemporary(rt);
+        return result;
+    }
+
+    public void StopRecordingAndSend()
+    {
+        if (!isRecording) { SetHeaderLine("Not recording."); return; }
+
+        // Stop the screenshot loop — _capturedScreenshots now holds all frames
+        if (_screenshotLoopCoroutine != null)
+        {
+            StopCoroutine(_screenshotLoopCoroutine);
+            _screenshotLoopCoroutine = null;
+        }
+
+        int position = Microphone.GetPosition(microphoneDevice);
+        Microphone.End(microphoneDevice);
+        isRecording = false;
+
+        if (position <= 0 || recordedClip == null) { SetHeaderLine("No audio captured."); return; }
+
+        // Trim to recorded length
+        int     channels = recordedClip.channels;
+        float[] samples  = new float[position * channels];
+        recordedClip.GetData(samples, 0);
+        AudioClip trimmed = AudioClip.Create("Recording", position, channels, sampleRate, false);
+        trimmed.SetData(samples, 0);
+        byte[] wavData = AudioClipToWav(trimmed);
+
+        // Snapshot gaze
+        string     gazeTargetName = "none";
+        WallAnchor wallAnchor     = default;
+
+        if (gazeInteractor != null && gazeInteractor.TryGetCurrentHit(out RaycastHit hit) && hit.collider != null)
+        {
+            gazeTargetName = hit.collider.gameObject.name;
+            wallAnchor     = WallAnchor.FromHit(hit);
+        }
+
+        _capturedTargetNameAtStop = gazeTargetName != "none" ? gazeTargetName : null;
+
+        float requestStartTime = Time.realtimeSinceStartup;
+        int   voiceJobId       = StartJob("voice", "UPLOADING", null, requestStartTime);
+
+        SetHeaderLine("Processing...");
+        StartCoroutine(SendAudioToServer(wavData, gazeTargetName, wallAnchor, voiceJobId, requestStartTime));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Server pipeline: POST /transcribe → confirmation gate → dispatch
+    // ─────────────────────────────────────────────────────────────────────────
+
+    IEnumerator SendAudioToServer(byte[] wavData, string gazeTargetName, WallAnchor wallAnchor,
+                                  int voiceJobId, float requestStartTime)
+    {
+        WWWForm form = new WWWForm();
+        form.AddBinaryData("audio",       wavData, "recording.wav", "audio/wav");
+        form.AddField     ("gaze_target", gazeTargetName);
+
+        // Send all screenshots collected during recording as a JSON array
+        string screenshotsJson = "[" + string.Join(",", System.Array.ConvertAll(
+            _capturedScreenshots.ToArray(),
+            s => "\"" + s + "\""
+        )) + "]";
+        form.AddField("screenshots_b64", screenshotsJson);
+
+        // Send all scene GameObject names so the server LLM can resolve
+        // colloquial names ("home", "tree") to exact Unity names
+        string sceneObjectsJson = CollectSceneObjectNamesJson();
+        form.AddField("scene_objects", sceneObjectsJson);
+        Debug.Log("[VoiceCaptureAndSend] Scene objects sent: " + sceneObjectsJson);
+
+        UpdateJob(voiceJobId, "SENDING", 10);
+
+        using (UnityWebRequest www = UnityWebRequest.Post(serverUrl, form))
+        {
+            yield return www.SendWebRequest();
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError("[VoiceCaptureAndSend] Upload failed: " + www.error);
+                SetHeaderLine("upload_failed");
+                FinishJob(voiceJobId, false, "upload_failed");
+                yield break;
+            }
+
+            UpdateJob(voiceJobId, "PARSING", 60);
+
+            string json = www.downloadHandler.text;
+            Debug.Log("[VoiceCaptureAndSend] Raw JSON: " + json);
+
+            TranscribeGateResponse gateResult = null;
+            try { gateResult = JsonUtility.FromJson<TranscribeGateResponse>(json); }
+            catch (System.Exception e)
+            {
+                Debug.LogError("[VoiceCaptureAndSend] JSON parse error: " + e);
+                SetHeaderLine("json_parse_failed");
+                FinishJob(voiceJobId, false, "json_parse_failed");
+                yield break;
+            }
+
+            if (gateResult == null)
+            {
+                SetHeaderLine("empty_response");
+                FinishJob(voiceJobId, false, "empty_response");
+                yield break;
+            }
+
+            if (transcriptText != null) transcriptText.text = gateResult.transcript;
+
+            // ── Confirmation required ─────────────────────────────────────
+            if (gateResult.requires_confirmation)
+            {
+                UpdateJob(voiceJobId, "AWAITING_CONFIRM", 70);
+                SetHeaderLine("Waiting for confirmation...");
+
+                var  capturedCommands = gateResult.commands;
+                var  capturedCommand  = gateResult.command;
+                bool confirmed        = false;
+
+                if (confirmationDialog != null)
+                {
+                    confirmationDialog.Show(
+                        gateResult.session_id,
+                        gateResult.confirmation_message,
+                        onExecute: _ => { confirmed = true; }
+                    );
+
+                    float timeout = 60f, waited = 0f;
+                    while (!confirmed && confirmationDialog.IsPanelVisible && waited < timeout)
+                    {
+                        waited += Time.deltaTime;
+                        yield return null;
+                    }
+                    yield return null; // one extra frame for callback
+                }
+                else
+                {
+                    confirmed = true;
+                    Debug.LogWarning("[VoiceCaptureAndSend] ConfirmationDialog not assigned — auto-executing.");
+                }
+
+                if (!confirmed)
+                {
+                    SetHeaderLine("Command cancelled.");
+                    FinishJob(voiceJobId, false, "cancelled");
+                    _headerLine = "";
+                    RefreshJobsUI();
+                    yield break;
+                }
+
+                UpdateJob(voiceJobId, "EXECUTING", 85);
+                DispatchCommands(capturedCommands, capturedCommand, wallAnchor, voiceJobId, requestStartTime);
+                yield break;
+            }
+
+            // ── No confirmation needed ───────────────────────────────────
+            UpdateJob(voiceJobId, "EXECUTING", 85);
+            DispatchCommands(gateResult.commands, gateResult.command, wallAnchor, voiceJobId, requestStartTime);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Dispatch
+    // ─────────────────────────────────────────────────────────────────────────
+
+    void DispatchCommands(Command[] commands, Command singleCommand,
+                          WallAnchor wallAnchor, int voiceJobId, float requestStartTime)
+    {
+        bool executedAnything   = false;
+        bool startedAnyAsyncJob = false;
+
+        if (commands != null && commands.Length > 0)
+        {
+            foreach (var c in commands)
+            {
+                if (c == null || string.IsNullOrWhiteSpace(c.action)) continue;
+                bool async = ApplyCommand(c, wallAnchor, requestStartTime);
+                startedAnyAsyncJob |= async;
+                executedAnything    = true;
+            }
+        }
+        else if (singleCommand != null)
+        {
+            startedAnyAsyncJob = ApplyCommand(singleCommand, wallAnchor, requestStartTime);
+            executedAnything   = true;
+        }
+
+        if (!executedAnything)
+        {
+            SetHeaderLine("No command executed.");
+            FinishJob(voiceJobId, false, "no_command");
+            return;
+        }
+
+        if (stateStore != null) stateStore.RequestSave();
+        FinishJob(voiceJobId, true, startedAnyAsyncJob ? "dispatched_async" : "done");
+        _headerLine = "";
+        RefreshJobsUI();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ApplyCommand — 5 cases only
+    // ─────────────────────────────────────────────────────────────────────────
+
+    bool ApplyCommand(Command cmd, WallAnchor wallAnchor, float startTimeOverride)
+    {
+        if (cmd == null || string.IsNullOrWhiteSpace(cmd.action)) return false;
+
+        string action = cmd.action.Trim().ToLowerInvariant();
+
+        switch (action)
+        {
+            // ── 1. generate_model ─────────────────────────────────────────
+            case "generate_model":
+            {
+                if (modelSpawner == null)
+                {
+                    Debug.LogError("[VoiceCaptureAndSend] generate_model: RuntimeModelSpawner missing.");
+                    return false;
+                }
+
+                string p     = string.IsNullOrWhiteSpace(cmd.prompt)    ? "simple cube"   : cmd.prompt;
+                string n     = string.IsNullOrWhiteSpace(cmd.name)      ? "Generated_01"  : cmd.name;
+                string stage = string.IsNullOrWhiteSpace(cmd.stage)     ? "preview"       : cmd.stage;
+                string style = string.IsNullOrWhiteSpace(cmd.art_style) ? "realistic"     : cmd.art_style;
+
+                int     jobId = StartJob("model", "PENDING", null);
+                Vector3 pos   = GetPlacementPosition();
+                modelSpawner.GenerateAndSpawn(p, n, pos, stage, style);
+
+                Coroutine co = StartCoroutine(PollTextTo3D_Job(jobId, p, n, stage, style));
+                _modelPollRoutines[jobId] = co;
+
+                if (aiIntentText != null) aiIntentText.text = $"Generating 3D: {p}";
+                return true;
+            }
+
+            // ── 2. create_poster ─────────────────────────────────────────
+            case "create_poster":
+            {
+                if (posterSpawner == null)
+                {
+                    Debug.LogError("[VoiceCaptureAndSend] create_poster: PosterSpawner missing.");
+                    return false;
+                }
+                if (!wallAnchor.IsValid())
+                {
+                    Debug.LogWarning("[VoiceCaptureAndSend] create_poster: no wall surface — look at a wall before stopping.");
+                    SetHeaderLine("Look at a wall first.");
+                    return false;
+                }
+
+                string prompt = string.IsNullOrWhiteSpace(cmd.image_prompt) ? "abstract art" : cmd.image_prompt;
+                float  w      = cmd.width_m  > 0f ? cmd.width_m  : defaultPosterWidthM;
+                float  h      = cmd.height_m > 0f ? cmd.height_m : defaultPosterHeightM;
+
+                int jobId = StartJob("poster", "PENDING", null);
+                StartCoroutine(GeneratePosterImageAndSpawn_Job(jobId, prompt, wallAnchor, w, h));
+
+                if (aiIntentText != null) aiIntentText.text = $"Poster: {prompt}";
+                return true;
+            }
+
+            // ── 3. set_wall_texture ───────────────────────────────────────
+            case "set_wall_texture":
+            {
+                if (!wallAnchor.IsValid())
+                {
+                    Debug.LogWarning("[VoiceCaptureAndSend] set_wall_texture: no wall surface — look at a wall before stopping.");
+                    SetHeaderLine("Look at a wall first.");
+                    return false;
+                }
+
+                string tPrompt = string.IsNullOrWhiteSpace(cmd.texture_prompt) ? "brick wall" : cmd.texture_prompt;
+                float  tile    = cmd.tile_scale > 0f ? cmd.tile_scale : 1f;
+
+                int jobId = StartJob("texture", "PENDING", null);
+                StartCoroutine(GenerateTextureAndApply_Job(jobId, tPrompt, wallAnchor, tile));
+
+                if (aiIntentText != null) aiIntentText.text = $"Texture: {tPrompt}";
+                return true;
+            }
+
+            // ── 4. run_code ───────────────────────────────────────────────
+            case "run_code":
+                {
+                    if (AICodeCommandHandler.Instance == null)
+                    {
+                        Debug.LogError("[VoiceCaptureAndSend] run_code: AICodeCommandHandler not in scene.");
+                        return false;
+                    }
+
+                    string behaviourPrompt = string.IsNullOrWhiteSpace(cmd.behaviour_prompt)
+                        ? "make this object rotate slowly"
+                        : cmd.behaviour_prompt;
+
+                    GameObject resolvedTarget = null;
+
+                    // 1. Prefer exact target from LLM
+                    if (cmd.targets != null && cmd.targets.Length > 0 && !string.IsNullOrWhiteSpace(cmd.targets[0]))
+                    {
+                        resolvedTarget = FindGameObjectCaseInsensitive(cmd.targets[0]);
+                    }
+
+                    // 2. Fallback to single target field
+                    if (resolvedTarget == null && !string.IsNullOrWhiteSpace(cmd.target))
+                    {
+                        resolvedTarget = FindGameObjectCaseInsensitive(cmd.target);
+                    }
+
+                    // 3. Fallback to frozen target captured at stop-recording
+                    if (resolvedTarget == null && !string.IsNullOrWhiteSpace(_capturedTargetNameAtStop))
+                    {
+                        resolvedTarget = FindGameObjectCaseInsensitive(_capturedTargetNameAtStop);
+                    }
+
+                    if (resolvedTarget == null)
+                    {
+                        Debug.LogWarning("[VoiceCaptureAndSend] run_code: target could not be resolved.");
+                        SetHeaderLine("Target not found.");
+                        return false;
+                    }
+
+                    Debug.Log($"[VoiceCaptureAndSend] run_code attaching to '{resolvedTarget.name}'");
+                    AICodeCommandHandler.Instance.HandleCommand(behaviourPrompt, resolvedTarget);
+
+                    if (modelSpawner != null)
+                        modelSpawner.SaveBehaviourPrompt(resolvedTarget.name, behaviourPrompt);
+                    if (stateStore != null)
+                        stateStore.RequestSave();
+
+                    if (aiIntentText != null)
+                        aiIntentText.text = $"Code: {behaviourPrompt}";
+
+                    return true;
+                }
+
+            // ── 5. no_action ─────────────────────────────────────────────
+            case "no_action":
+                if (aiIntentText != null) aiIntentText.text = "No action.";
+                return false;
+
+            default:
+                Debug.LogWarning("[VoiceCaptureAndSend] Unknown action ignored: " + cmd.action);
+                return false;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Async: 3D model polling
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private IEnumerator PollTextTo3D_Job(int jobId, string prompt, string name, string stage, string artStyle)
+    {
+        const float pollInterval = 1f;
+
+        while (true)
+        {
+            var    reqObj  = new TextTo3DRequest { prompt = prompt, name = name, stage = stage, art_style = artStyle };
+            byte[] bodyRaw = Encoding.UTF8.GetBytes(JsonUtility.ToJson(reqObj));
+
+            using (UnityWebRequest www = new UnityWebRequest(textTo3dUrl, "POST"))
+            {
+                www.uploadHandler   = new UploadHandlerRaw(bodyRaw);
+                www.downloadHandler = new DownloadHandlerBuffer();
+                www.SetRequestHeader("Content-Type", "application/json");
+                yield return www.SendWebRequest();
+
+                if (www.result != UnityWebRequest.Result.Success)
+                {
+                    FinishJob(jobId, false, "poll_failed: " + www.error);
+                    yield break;
+                }
+
+                TextTo3DProgressResponse resp = null;
+                try { resp = JsonUtility.FromJson<TextTo3DProgressResponse>(www.downloadHandler.text); }
+                catch { }
+
+                if (resp != null)
+                {
+                    string st = string.IsNullOrEmpty(resp.status) ? "IN_PROGRESS" : resp.status;
+                    UpdateJob(jobId, st, resp.progress);
+
+                    if (st == "SUCCEEDED" || resp.progress >= 100) { UpdateJob(jobId, "SUCCEEDED", 100); FinishJob(jobId, true); yield break; }
+                    if (st == "FAILED"    || st == "ERROR")        { FinishJob(jobId, false, "FAILED");                         yield break; }
+                }
+
+                yield return new WaitForSeconds(pollInterval);
+            }
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Async: Generate model then attach code
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private IEnumerator GenerateAndAttachCode_Job(int jobId, string genPrompt, string genName,
+                                                  Vector3 pos, string behaviourPrompt)
+    {
+        if (modelSpawner == null)               { FinishJob(jobId, false, "no modelSpawner");        yield break; }
+        if (AICodeCommandHandler.Instance == null) { FinishJob(jobId, false, "no AICodeCommandHandler"); yield break; }
+
+        UpdateJob(jobId, "GENERATING", 10);
+        modelSpawner.GenerateAndSpawn(genPrompt, genName, pos, "preview", "realistic");
+
+        const float timeout = 120f;
+        float elapsed = 0f;
+        GameObject spawnedObj = null;
+
+        while (elapsed < timeout)
+        {
+            yield return new WaitForSeconds(1f);
+            elapsed += 1f;
+
+            spawnedObj = FindGameObjectCaseInsensitive(genName);
+            if (spawnedObj != null) break;
+
+            int pct = Mathf.Clamp(10 + Mathf.RoundToInt((elapsed / timeout) * 60f), 10, 70);
+            UpdateJob(jobId, $"WAITING ({elapsed:0}s)", pct);
+        }
+
+        if (spawnedObj == null)
+        {
+            FinishJob(jobId, false, $"'{genName}' never appeared after {timeout}s");
+            yield break;
+        }
+
+        UpdateJob(jobId, "ATTACHING_CODE", 80);
+        AICodeCommandHandler.Instance.HandleCommand(behaviourPrompt, spawnedObj);
+        modelSpawner.SaveBehaviourPrompt(genName, behaviourPrompt);
+        if (stateStore != null) stateStore.RequestSave();
+        FinishJob(jobId, true, $"generated '{genName}' + code attached");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Async: Poster generation
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private IEnumerator GeneratePosterImageAndSpawn_Job(int jobId, string prompt, WallAnchor anchor,
+                                                        float widthM, float heightM)
+    {
+        string endpoint = "http://localhost:8000/api/poster-image";
+
+        int   wpx = 1024, hpx = 1024;
+        float aspect = widthM / Mathf.Max(0.0001f, heightM);
+        if      (aspect > 1.2f) { wpx = 1344; hpx = 768;  }
+        else if (aspect < 0.8f) { wpx = 768;  hpx = 1344; }
+
+        byte[] bodyRaw = Encoding.UTF8.GetBytes(
+            JsonUtility.ToJson(new PosterImageRequest { prompt = prompt, width_px = wpx, height_px = hpx }));
+
+        UpdateJob(jobId, "POSTER_GENERATION", 5);
+
+        using (UnityWebRequest www = new UnityWebRequest(endpoint, "POST"))
+        {
+            www.uploadHandler   = new UploadHandlerRaw(bodyRaw);
+            www.downloadHandler = new DownloadHandlerBuffer();
+            www.SetRequestHeader("Content-Type", "application/json");
+            yield return www.SendWebRequest();
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                FinishJob(jobId, false, "POSTER_FAILED: " + www.error);
+                yield break;
+            }
+
+            PosterImageResponse resp = null;
+            try { resp = JsonUtility.FromJson<PosterImageResponse>(www.downloadHandler.text); }
+            catch { }
+
+            if (resp == null || string.IsNullOrWhiteSpace(resp.image_url))
+            {
+                FinishJob(jobId, false, "POSTER_FAILED (no image_url)");
+                yield break;
+            }
+
+            UpdateJob(jobId, "POSTER_READY", 100);
+            posterSpawner.CreatePosterAtAnchor(anchor, resp.image_url, widthM, heightM);
+            if (stateStore != null) stateStore.RequestSave();
+            FinishJob(jobId, true, $"{widthM:0.0}x{heightM:0.0}m");
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Async: Texture generation
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private IEnumerator GenerateTextureAndApply_Job(int jobId, string texturePrompt,
+                                                    WallAnchor anchor, float tileScale)
+    {
+        string endpoint = "http://localhost:8000/api/texture-image";
+        byte[] bodyRaw  = Encoding.UTF8.GetBytes(
+            JsonUtility.ToJson(new TextureImageRequest { prompt = texturePrompt, size_px = 1024 }));
+
+        UpdateJob(jobId, "TEXTURE_GENERATION", 5);
+
+        using (UnityWebRequest www = new UnityWebRequest(endpoint, "POST"))
+        {
+            www.uploadHandler   = new UploadHandlerRaw(bodyRaw);
+            www.downloadHandler = new DownloadHandlerBuffer();
+            www.SetRequestHeader("Content-Type", "application/json");
+            yield return www.SendWebRequest();
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                FinishJob(jobId, false, "TEXTURE_FAILED: " + www.error);
+                yield break;
+            }
+
+            var resp = JsonUtility.FromJson<PosterImageResponse>(www.downloadHandler.text);
+            if (resp == null || string.IsNullOrWhiteSpace(resp.image_url))
+            {
+                FinishJob(jobId, false, "TEXTURE_FAILED (no image_url)");
+                yield break;
+            }
+
+            var applier = FindFirstObjectByType<WallTextureApplier>();
+            if (applier == null) { FinishJob(jobId, false, "WallTextureApplier missing"); yield break; }
+
+            UpdateJob(jobId, "TEXTURE_APPLYING", 70);
+            applier.ApplyTextureUrlToAnchor(anchor, resp.image_url, tileScale);
+            if (stateStore != null) stateStore.RequestSave();
+            UpdateJob(jobId, "TEXTURE_APPLIED", 100);
+            FinishJob(jobId, true);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Helpers
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private Vector3 GetPlacementPosition()
+    {
+        var cam = Camera.main;
+        return cam != null ? cam.transform.position + cam.transform.forward * 2f : Vector3.zero;
+    }
+
+    private GameObject FindGameObjectCaseInsensitive(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        string lower = name.ToLowerInvariant();
+        foreach (var go in FindObjectsByType<GameObject>(FindObjectsSortMode.None))
+            if (go.name.ToLowerInvariant() == lower) return go;
+        return null;
+    }
+
+    private byte[] AudioClipToWav(AudioClip clip)
+    {
+        float[] samples   = new float[clip.samples * clip.channels];
+        clip.GetData(samples, 0);
+
+        short[] intData   = new short[samples.Length];
+        byte[]  bytesData = new byte[samples.Length * 2];
+
+        const float rescale = 32767f;
+        for (int i = 0; i < samples.Length; i++)
+        {
+            intData[i] = (short)(samples[i] * rescale);
+            System.BitConverter.GetBytes(intData[i]).CopyTo(bytesData, i * 2);
+        }
+
+        using (var stream = new MemoryStream())
+        using (var writer = new BinaryWriter(stream))
+        {
+            int fileSize = bytesData.Length + 44 - 8;
+            writer.Write(Encoding.ASCII.GetBytes("RIFF"));
+            writer.Write(fileSize);
+            writer.Write(Encoding.ASCII.GetBytes("WAVE"));
+            writer.Write(Encoding.ASCII.GetBytes("fmt "));
+            writer.Write(16);
+            writer.Write((short)1);
+            writer.Write((short)clip.channels);
+            writer.Write(clip.frequency);
+            writer.Write(clip.frequency * clip.channels * 2);
+            writer.Write((short)(clip.channels * 2));
+            writer.Write((short)16);
+            writer.Write(Encoding.ASCII.GetBytes("data"));
+            writer.Write(bytesData.Length);
+            writer.Write(bytesData);
+            return stream.ToArray();
+        }
+    }
+}

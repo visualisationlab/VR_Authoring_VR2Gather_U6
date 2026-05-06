@@ -1,0 +1,113 @@
+# =========================================
+# UNITY
+# =========================================
+
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# Uncomment if needed
+# /[Aa]ssets/AssetStoreTools*
+
+[Aa]ssets/Plugins/Editor/JetBrains*
+
+.vs/
+.gradle/
+
+ExportedObj/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+sysinfo.txt
+
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+crashlytics-build.properties
+
+/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+/[Aa]ssets/[Ss]treamingAssets/aa.meta
+/[Aa]ssets/[Ss]treamingAssets/aa/*
+
+
+# =========================================
+# PYTHON BACKEND (VoiceServer)
+# =========================================
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment files
+.env
+.env.*
+*.env
+
+# Python build artifacts
+dist/
+build/
+*.egg-info/
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# =========================================
+# GENERATED RUNTIME CONTENT (XR PIPELINE)
+# =========================================
+
+# If your server generates models/textures/posters
+unity_generated_models/
+unity_generated_posters/
+unity_generated_textures/
+
+# Any local output folders
+output/
+outputs/
+
+# =========================================
+# OS FILES
+# =========================================
+
+.DS_Store
+Thumbs.db
+
+# --- Local / user-specific config ---
+config-user.json
+
+# --- Generated assets (your pipeline outputs) ---
+Assets/Generated/
+Assets/Models/
+Assets/Models.meta
