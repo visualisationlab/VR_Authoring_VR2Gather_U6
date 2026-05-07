@@ -62,6 +62,18 @@ crashlytics-build.properties
 !Packages/com.kybernetik.inspector-gadgets/
 !Packages/com.kybernetik.inspector-gadgets/**
 
+# Allow config-user.json
+!config-user.json
+!**/config-user.json
+
+# Allow VoiceServer folder
+!VoiceServer/
+!VoiceServer/**
+
+# Allow Assets/Models folder
+!Assets/Models/
+!Assets/Models/**
+
 
 # =========================================
 # PYTHON BACKEND (VoiceServer)
@@ -111,10 +123,6 @@ outputs/
 .DS_Store
 Thumbs.db
 
-# --- Local / user-specific config ---
-config-user.json
 
 # --- Generated assets (your pipeline outputs) ---
 Assets/Generated/
-Assets/Models/
-Assets/Models.meta
