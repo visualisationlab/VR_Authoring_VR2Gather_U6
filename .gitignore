@@ -58,8 +58,9 @@ crashlytics-build.properties
 # Ignore all DLLs globally
 *.dll
 
-# But allow Inspector Gadgets DLLs
-!Packages/com.kybernetik.inspector-gadgets/**/*.dll
+# Allow everything inside Inspector Gadgets package
+!Packages/com.kybernetik.inspector-gadgets/
+!Packages/com.kybernetik.inspector-gadgets/**
 
 
 # =========================================
