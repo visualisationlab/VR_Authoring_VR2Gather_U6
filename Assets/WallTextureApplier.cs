@@ -48,7 +48,7 @@ public class WallTextureApplier : MonoBehaviour
         if (hasLocal)
             StartCoroutine(RestoreFromLocalFile(persist));
         else if (!string.IsNullOrEmpty(persist.textureUrl))
-            StartCoroutine(ApplyTextureCoroutine_FromWall(persist.transform, persist.textureUrl, persist.tileScale));
+            StartCoroutine(ApplyTextureCoroutine_FromWall(persist.transform, persist.textureUrl, persist.tileScale, false));
         else
             Debug.LogWarning($"[WallTextureApplier] RestoreTexture: nothing to restore for '{persist.name}'.");
     }
@@ -68,7 +68,7 @@ public class WallTextureApplier : MonoBehaviour
             {
                 Debug.LogWarning($"[WallTextureApplier] Local texture load failed ({req.error}), falling back to URL.");
                 if (!string.IsNullOrEmpty(persist.textureUrl))
-                    yield return ApplyTextureCoroutine_FromWall(persist.transform, persist.textureUrl, persist.tileScale);
+                    yield return ApplyTextureCoroutine_FromWall(persist.transform, persist.textureUrl, persist.tileScale, false);
                 yield break;
             }
 
@@ -96,7 +96,7 @@ public class WallTextureApplier : MonoBehaviour
         yield return ApplyTextureCoroutine_FromWall(persist.transform, imageUrl, tileScale);
     }
 
-    IEnumerator ApplyTextureCoroutine_FromWall(Transform wallRoot, string imageUrl, float tileScale)
+    IEnumerator ApplyTextureCoroutine_FromWall(Transform wallRoot, string imageUrl, float tileScale, bool broadcastNetwork = true)
     {
         if (wallRoot == null) yield break;
 
@@ -143,6 +143,20 @@ public class WallTextureApplier : MonoBehaviour
                 persist.controllable.TrySetColor(Color.white);
 
             FindFirstObjectByType<SceneStateStore>()?.RequestSave();
+
+            if (broadcastNetwork)
+            {
+                var assetSync = FindFirstObjectByType<VRT.Pilots.Common.NetworkedAIAssetSync>();
+                if (assetSync != null)
+                {
+                    //var net = persist.GetComponent<VRT.Core.NetworkIdBehaviour>();
+                    var net = persist.GetComponent<VRT.Pilots.Common.NetworkIdBehaviour>();
+                    if (net != null)
+                        assetSync.SendTextureApplied(net.NetworkId, imageUrl, persist.tileScale);
+                    else
+                        Debug.LogWarning("[WallTextureApplier] Cannot network-sync texture because target has no NetworkIdBehaviour: " + persist.name);
+                }
+            }
 
             Debug.Log("[WallTextureApplier] Applied + saved texture png: " + localPath);
         }

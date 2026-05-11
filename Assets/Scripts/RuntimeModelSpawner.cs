@@ -102,6 +102,16 @@ public class RuntimeModelSpawner : MonoBehaviour
     }
 
     /// <summary>
+    /// Called by NetworkedAIAssetSync on remote clients. Downloads the already-generated
+    /// GLB from the shared server URL, saves it locally, spawns it at the exact same
+    /// pose/scale, and writes it to this client's local registry for persistence.
+    /// </summary>
+    public void SpawnRemoteModelFromUrl(string modelId, string modelName, string prompt, string downloadUrl, Vector3 position, Quaternion rotation, Vector3 scale)
+    {
+        StartCoroutine(SpawnRemoteModelFromUrlCo(modelId, modelName, prompt, downloadUrl, position, rotation, scale));
+    }
+
+    /// <summary>
     /// Save a behaviour prompt onto an already-spawned model's registry record
     /// so it is reattached automatically the next time the scene loads.
     /// Called by VoiceCaptureAndSend after HandleCommand succeeds.
@@ -246,7 +256,103 @@ public class RuntimeModelSpawner : MonoBehaviour
                 scale = spawnedGo.transform.localScale,
                 behaviourPrompt = "" // filled in later by SaveBehaviourPrompt()
             });
+
+            EnsureNetworkIdentity(spawnedGo, Sanitize(assetName));
+
+            var assetSync = FindFirstObjectByType<VRT.Pilots.Common.NetworkedAIAssetSync>();
+            if (assetSync != null)
+            {
+                assetSync.SendModelCreated(
+                    Sanitize(assetName),
+                    assetName,
+                    prompt,
+                    downloadUrl,
+                    spawnedGo.transform
+                );
+            }
         }
+    }
+
+    IEnumerator SpawnRemoteModelFromUrlCo(string modelId, string modelName, string prompt, string downloadUrl, Vector3 position, Quaternion rotation, Vector3 scale)
+    {
+        if (string.IsNullOrEmpty(downloadUrl))
+        {
+            Debug.LogWarning("[RuntimeModelSpawner] Remote model downloadUrl is empty.");
+            yield break;
+        }
+
+        string safeId = string.IsNullOrEmpty(modelId) ? Sanitize(modelName) : Sanitize(modelId);
+        string safeName = string.IsNullOrEmpty(modelName) ? safeId : Sanitize(modelName);
+        string localPath = Path.Combine(ModelsDir, safeId + ".glb");
+
+        if (!File.Exists(localPath))
+        {
+            using (var dl = UnityWebRequest.Get(downloadUrl))
+            {
+                Debug.Log("[RuntimeModelSpawner] Downloading remote model: " + downloadUrl);
+                yield return dl.SendWebRequest();
+
+                if (dl.result != UnityWebRequest.Result.Success)
+                {
+                    Debug.LogError($"[RuntimeModelSpawner] Remote model download failed: {dl.error}\n{dl.downloadHandler.text}");
+                    yield break;
+                }
+
+                try
+                {
+                    File.WriteAllBytes(localPath, dl.downloadHandler.data);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError("[RuntimeModelSpawner] Failed writing remote GLB: " + e + "\nPath=" + localPath);
+                    yield break;
+                }
+            }
+        }
+
+        GameObject spawnedGo = null;
+        yield return LoadGlbIntoScene(
+            localPath,
+            string.IsNullOrEmpty(modelName) ? safeName : modelName,
+            string.IsNullOrEmpty(prompt) ? modelName : prompt,
+            position,
+            applyAutoPlacement: false,
+            forcedEulerRotation: rotation.eulerAngles,
+            forcedScale: scale,
+            onDone: go => { spawnedGo = go; }
+        );
+
+        if (spawnedGo != null)
+        {
+            EnsureNetworkIdentity(spawnedGo, safeId);
+
+            SaveRecord(new SpawnRecord
+            {
+                name = spawnedGo.name,
+                prompt = prompt ?? "",
+                localGlbPath = localPath,
+                position = spawnedGo.transform.position,
+                eulerRotation = spawnedGo.transform.eulerAngles,
+                scale = spawnedGo.transform.localScale,
+                behaviourPrompt = ""
+            });
+        }
+    }
+
+    void EnsureNetworkIdentity(GameObject go, string networkId)
+    {
+        if (go == null) return;
+
+        var sync = go.GetComponent<VRT.Pilots.Common.NetworkedAIObjectSync>();
+        if (sync == null)
+            sync = go.AddComponent<VRT.Pilots.Common.NetworkedAIObjectSync>();
+
+        if (!string.IsNullOrEmpty(networkId))
+            sync.NetworkId = networkId;
+
+        sync.ai = go.GetComponent<AIControllable>();
+        sync.targetRenderer = go.GetComponentInChildren<Renderer>(true);
+        sync.sceneStateStore = FindFirstObjectByType<SceneStateStore>();
     }
 
     IEnumerator LoadGlbIntoScene(

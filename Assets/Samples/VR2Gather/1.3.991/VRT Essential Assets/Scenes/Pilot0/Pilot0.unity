@@ -1903,6 +1903,7 @@ GameObject:
   - component: {fileID: 1129719812}
   - component: {fileID: 1129719811}
   - component: {fileID: 1129719810}
+  - component: {fileID: 1129719817}
   m_Layer: 0
   m_Name: Cube_Test
   m_TagString: Untagged
@@ -2056,6 +2057,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1129719817
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1129719809}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
+  noAutoCreateNetworkId: 0
+  NetworkId: 11297a5b-7ac8-4da3-a9ea-91ce7065f7ce
 --- !u!1001 &1198636784
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3681,6 +3696,7 @@ GameObject:
   - component: {fileID: 1941304913}
   - component: {fileID: 1941304912}
   - component: {fileID: 1941304911}
+  - component: {fileID: 1941304915}
   m_Layer: 0
   m_Name: AI_Agent
   m_TagString: Untagged
@@ -3845,6 +3861,25 @@ MonoBehaviour:
   rb: {fileID: 0}
   useRigidbodyWhenAvailable: 1
   materialName: 
+--- !u!114 &1941304915
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1941304906}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 947e82c0b5d5f2a40995f6e01338da6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIAssetSync
+  noAutoCreateNetworkId: 0
+  NetworkId: 7d7012a0-aeec-4f37-8150-df99f8ae2651
+  wallTextureApplier: {fileID: 840336065}
+  posterSpawner: {fileID: 840336066}
+  sceneStateStore: {fileID: 225680293}
+  runtimeModelSpawner: {fileID: 1643055427}
+  debug: 1
 --- !u!1001 &1991832117
 PrefabInstance:
   m_ObjectHideFlags: 0

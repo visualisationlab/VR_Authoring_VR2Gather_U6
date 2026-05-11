@@ -223,5 +223,12 @@ public class SceneStateStore : MonoBehaviour
         ai.targetRenderer = r;
         ai.rb = null;
         ai.useRigidbodyWhenAvailable = false;
+
+        // Make restored posters network-editable using their persistent poster id.
+        var netSync = poster.AddComponent<VRT.Pilots.Common.NetworkedAIObjectSync>();
+        netSync.NetworkId = persist.id;
+        netSync.ai = ai;
+        netSync.targetRenderer = r;
+        netSync.sceneStateStore = this;
     }
 }

@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from PIL import Image, ImageDraw
-import os, json, re, time, base64, io
+import os, json, re, time, base64, io, socket
 from datetime import datetime
 from faster_whisper import WhisperModel
 from openai import OpenAI
@@ -31,6 +31,22 @@ print("OPENAI_API_KEY loaded:", bool(OPENAI_API_KEY))
 
 # "o4-mini" is good for structured JSON
 LLM_MODEL = "o4-mini"
+
+
+def get_local_ip():
+    """Return the LAN IP that other Unity clients can use to reach this server."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        sock.connect(("8.8.8.8", 80))
+        return sock.getsockname()[0]
+    except Exception:
+        return "127.0.0.1"
+    finally:
+        sock.close()
+
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", f"http://{get_local_ip()}:8000")
+print("PUBLIC_BASE_URL:", PUBLIC_BASE_URL)
+
 
 BASE_PATH = os.path.join(
     os.path.expanduser("~"), "AppData", "LocalLow", "DefaultCompany", "VRTApp-TestLocal"
@@ -461,7 +477,7 @@ def text_to_3d(req: TextTo3DRequest, background_tasks: BackgroundTasks):
     if os.path.exists(glb_path):
         return JSONResponse(status_code=200, content={
             "status": "SUCCEEDED", "progress": 100,
-            "downloadUrl": f"http://localhost:8000/files/{glb_filename}",
+            "downloadUrl": f"{PUBLIC_BASE_URL}/files/{glb_filename}",
         })
 
     job = jobs.get(safe)
@@ -516,7 +532,7 @@ def poster_image(req: PosterImageRequest):
         print(f"[poster] AI generation failed: {e}, using placeholder", flush=True)
         _make_placeholder_poster(prompt, out_path, w, h)
 
-    return JSONResponse(content={"image_url": f"http://localhost:8000/posters/{filename}"})
+    return JSONResponse(content={"image_url": f"{PUBLIC_BASE_URL}/posters/{filename}"})
 
 # =========================
 # TEXTURE IMAGE ENDPOINT
@@ -537,7 +553,7 @@ def texture_image(req: TextureImageRequest):
     out_path = os.path.join(TEXTURE_DIR, filename)
 
     _make_ai_texture(prompt, out_path, size_px=size_px)
-    return JSONResponse(content={"image_url": f"http://localhost:8000/textures/{filename}"})
+    return JSONResponse(content={"image_url": f"{PUBLIC_BASE_URL}/textures/{filename}"})
 
 # =========================
 # LLM DECISION ENGINE

@@ -956,7 +956,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
     private IEnumerator GeneratePosterImageAndSpawn_Job(int jobId, string prompt, WallAnchor anchor,
                                                         float widthM, float heightM)
     {
-        string endpoint = "http://localhost:8000/api/poster-image";
+        string endpoint = BuildServerEndpoint("/api/poster-image");
 
         int   wpx = 1024, hpx = 1024;
         float aspect = widthM / Mathf.Max(0.0001f, heightM);
@@ -1005,7 +1005,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
     private IEnumerator GenerateTextureAndApply_Job(int jobId, string texturePrompt,
                                                     WallAnchor anchor, float tileScale)
     {
-        string endpoint = "http://localhost:8000/api/texture-image";
+        string endpoint = BuildServerEndpoint("/api/texture-image");
         byte[] bodyRaw  = Encoding.UTF8.GetBytes(
             JsonUtility.ToJson(new TextureImageRequest { prompt = texturePrompt, size_px = 1024 }));
 
@@ -1045,6 +1045,21 @@ public class VoiceCaptureAndSend : MonoBehaviour
     // ─────────────────────────────────────────────────────────────────────────
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
+
+    private string BuildServerEndpoint(string apiPath)
+    {
+        // Derive http://host:port from serverUrl, e.g.
+        // http://192.168.0.206:8000/transcribe -> http://192.168.0.206:8000/api/poster-image
+        try
+        {
+            var uri = new System.Uri(serverUrl);
+            return uri.GetLeftPart(System.UriPartial.Authority) + apiPath;
+        }
+        catch
+        {
+            return "http://localhost:8000" + apiPath;
+        }
+    }
 
     private Vector3 GetPlacementPosition()
     {
