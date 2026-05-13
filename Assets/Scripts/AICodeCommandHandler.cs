@@ -4,7 +4,6 @@ using System.IO;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
-using VRT.Pilots.Common;
 
 public class AICodeCommandHandler : MonoBehaviour
 {
@@ -347,30 +346,25 @@ public class AICodeCommandHandler : MonoBehaviour
                     Log($"Attached to '{target.name}' successfully" +
                         (attempt > 1 ? " after retry." : "."));
 
-                    var net = target.GetComponent<NetworkIdBehaviour>();
-                    if (net == null)
-                        net = target.AddComponent<NetworkIdBehaviour>();
+                    bool isParticle = IsParticleCommand(userCommand);
 
-                    if (string.IsNullOrEmpty(net.NetworkId))
-                        net.CreateNetworkId(true);
-
-                    bool particle = IsParticleCommand(userCommand);
-
-                    var sync = FindFirstObjectByType<NetworkedAIBehaviourSync>();
-                    if (sync != null && !isReplay)
+                    // --- Network sync ---
+                    // Send the exact generated C# code to the other VR2Gather clients.
+                    // IMPORTANT: this is skipped for replay/restored behaviours, otherwise
+                    // scene reloads would rebroadcast old local saves again.
+                    if (!isReplay)
                     {
-                        sync.SendRuntimeCode(
-                            net.NetworkId,
-                            code,
-                            userCommand,
-                            effectId,
-                            particle
-                        );
+                        TrySendRuntimeCodeSync(target, userCommand, code, effectId, isParticle);
                     }
 
                     // --- Particle persistence ---
-                    if (!isReplay && IsParticleCommand(userCommand) && effectId != null)
+                    // Wait a couple of frames so generated Start() has time to create
+                    // the child ParticleSystem object before we search/save it.
+                    if (!isReplay && isParticle && effectId != null)
                     {
+                        yield return null;
+                        yield return null;
+
                         if (ParticleEffectManager.Instance != null)
                         {
                             GameObject particleGO = FindParticleChildOnTarget(target);
@@ -400,6 +394,191 @@ public class AICodeCommandHandler : MonoBehaviour
             }
         }
     }
+
+
+    // ------------------------------------------------------------------ networking helpers
+
+    /// <summary>
+    /// Sends generated runtime code to other machines if NetworkedAIBehaviourSync is in the scene.
+    ///
+    /// Your NetworkedAIBehaviourSync.SendRuntimeCode signature is:
+    /// SendRuntimeCode(string targetNetworkId, string generatedCode, string behaviourPrompt, string effectId, bool isParticle)
+    ///
+    /// This method uses reflection so AICodeCommandHandler can still compile even if the sync script
+    /// is temporarily removed while testing.
+    /// </summary>
+    void TrySendRuntimeCodeSync(GameObject target, string behaviourPrompt, string generatedCode,
+                                string effectId, bool isParticle)
+    {
+        if (target == null)
+            return;
+
+        string targetNetworkId = GetNetworkIdFromTarget(target);
+        if (string.IsNullOrEmpty(targetNetworkId))
+        {
+            Debug.LogWarning("[AICodeCommandHandler] Cannot sync runtime code: target has no NetworkIdBehaviour / NetworkId. Target=" + target.name);
+            return;
+        }
+
+        Type syncType = FindTypeInLoadedAssemblies("NetworkedAIBehaviourSync");
+        if (syncType == null)
+        {
+            Debug.LogWarning("[AICodeCommandHandler] NetworkedAIBehaviourSync type not found — runtime code will stay local.");
+            return;
+        }
+
+        object syncInstance = FindNetworkedAIBehaviourSyncInstance(syncType);
+        if (syncInstance == null)
+        {
+            Debug.LogWarning("[AICodeCommandHandler] NetworkedAIBehaviourSync component not found in scene — runtime code will stay local.");
+            return;
+        }
+
+        var method = syncType.GetMethod(
+            "SendRuntimeCode",
+            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance,
+            null,
+            new Type[]
+            {
+                typeof(string), // targetNetworkId
+                typeof(string), // generatedCode
+                typeof(string), // behaviourPrompt
+                typeof(string), // effectId
+                typeof(bool)    // isParticle
+            },
+            null
+        );
+
+        if (method == null)
+        {
+            Debug.LogWarning("[AICodeCommandHandler] NetworkedAIBehaviourSync.SendRuntimeCode(...) not found or has a different signature.");
+            return;
+        }
+
+        try
+        {
+            method.Invoke(syncInstance, new object[]
+            {
+                targetNetworkId,
+                generatedCode,
+                behaviourPrompt,
+                effectId,
+                isParticle
+            });
+
+            Debug.Log("[AICodeCommandHandler] Sent runtime code sync" + (isParticle ? " [particle]." : "."));
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning("[AICodeCommandHandler] Failed to send runtime code sync: " + ex);
+        }
+    }
+
+    static object FindNetworkedAIBehaviourSyncInstance(Type syncType)
+    {
+        // If you later add a public static Instance property to NetworkedAIBehaviourSync,
+        // this will use it automatically.
+        var instanceProp = syncType.GetProperty(
+            "Instance",
+            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static
+        );
+
+        if (instanceProp != null)
+        {
+            object instance = instanceProp.GetValue(null, null);
+            if (instance != null)
+                return instance;
+        }
+
+        // Current uploaded NetworkedAIBehaviourSync.cs does NOT have Instance,
+        // so we find the scene component directly.
+        UnityEngine.Object[] all = Resources.FindObjectsOfTypeAll(syncType);
+        foreach (UnityEngine.Object obj in all)
+        {
+            if (obj == null)
+                continue;
+
+            Component component = obj as Component;
+            if (component == null)
+                continue;
+
+            if (component.gameObject.scene.IsValid())
+                return component;
+        }
+
+        return null;
+    }
+
+    static string GetNetworkIdFromTarget(GameObject target)
+    {
+        if (target == null)
+            return string.Empty;
+
+        Component[] components = target.GetComponents<Component>();
+        foreach (Component component in components)
+        {
+            if (component == null)
+                continue;
+
+            Type type = component.GetType();
+            if (type.Name != "NetworkIdBehaviour")
+                continue;
+
+            var field = type.GetField(
+                "NetworkId",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance
+            );
+
+            if (field != null)
+            {
+                object value = field.GetValue(component);
+                return value != null ? value.ToString() : string.Empty;
+            }
+
+            var prop = type.GetProperty(
+                "NetworkId",
+                System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance
+            );
+
+            if (prop != null)
+            {
+                object value = prop.GetValue(component, null);
+                return value != null ? value.ToString() : string.Empty;
+            }
+        }
+
+        Debug.LogWarning("[AICodeCommandHandler] Target has no NetworkIdBehaviour: " + target.name);
+        return string.Empty;
+    }
+
+    static Type FindTypeInLoadedAssemblies(string typeName)
+    {
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            Type type = assembly.GetType(typeName);
+            if (type != null)
+                return type;
+
+            Type[] types;
+            try
+            {
+                types = assembly.GetTypes();
+            }
+            catch
+            {
+                continue;
+            }
+
+            foreach (Type candidate in types)
+            {
+                if (candidate != null && candidate.Name == typeName)
+                    return candidate;
+            }
+        }
+
+        return null;
+    }
+
 
     // ------------------------------------------------------------------ particle helpers
 
