@@ -54,7 +54,7 @@ namespace VRT.Pilots.Common
                 sceneStateStore = FindFirstObjectByType<SceneStateStore>();
 
             VRTOrchestratorSingleton.Comm.RegisterEventType(
-                MessageTypeID.TID_AIObjectStateMessage,
+                AIMessageTypeID.TID_AIObjectStateMessage,
                 typeof(AIObjectStateMessage)
             );
 

@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.Networking;
 using System.Collections;
 using System.IO;
+using VRT.Pilots.Common;
 
 public class PosterSpawner : MonoBehaviour
 {
@@ -126,22 +127,12 @@ public class PosterSpawner : MonoBehaviour
         ai.rb = null;
         ai.useRigidbodyWhenAvailable = false;
 
-        // 9) Make the runtime poster network-editable too. Use the poster id as
-        //    the network id so every client can refer to the same poster.
-        var netSync = poster.AddComponent<VRT.Pilots.Common.NetworkedAIObjectSync>();
-        netSync.NetworkId = persist.id;
-        netSync.ai = ai;
-        netSync.targetRenderer = ai.targetRenderer;
-
-        // 10) Save state NOW — localPngPath is populated and the poster is fully
-        //     set up.
+        // 9) ✅ Save state NOW — localPngPath is populated and the poster is fully
+        //    set up. This replaces the early RequestSave() in VoiceCaptureAndSend
+        //    which fired before the PNG download coroutine finished, resulting in
+        //    an empty localPngPath being persisted and a blank image on reload.
         var store = FindFirstObjectByType<SceneStateStore>();
         if (store != null) store.RequestSave();
-
-        // 11) Tell the other VR2Gather clients to create and cache the same poster.
-        var assetSync = FindFirstObjectByType<VRT.Pilots.Common.NetworkedAIAssetSync>();
-        if (assetSync != null)
-            assetSync.SendPosterCreated(persist);
     }
 
     // -------------------------------------------------------------------------

@@ -102,13 +102,13 @@ public class RuntimeModelSpawner : MonoBehaviour
     }
 
     /// <summary>
-    /// Called by NetworkedAIAssetSync on remote clients. Downloads the already-generated
-    /// GLB from the shared server URL, saves it locally, spawns it at the exact same
-    /// pose/scale, and writes it to this client's local registry for persistence.
+    /// Called by NetworkedAIAssetSync on remote clients. The model was already
+    /// generated on the master/server; this client only downloads, caches, spawns,
+    /// assigns the same network id, and persists it locally.
     /// </summary>
-    public void SpawnRemoteModelFromUrl(string modelId, string modelName, string prompt, string downloadUrl, Vector3 position, Quaternion rotation, Vector3 scale)
+    public void SpawnRemoteModelFromUrl(string networkId, string modelName, string prompt, string downloadUrl, Vector3 position, Quaternion rotation, Vector3 scale)
     {
-        StartCoroutine(SpawnRemoteModelFromUrlCo(modelId, modelName, prompt, downloadUrl, position, rotation, scale));
+        StartCoroutine(SpawnRemoteModelFromUrlCo(networkId, modelName, prompt, downloadUrl, position, rotation, scale));
     }
 
     /// <summary>
@@ -246,6 +246,21 @@ public class RuntimeModelSpawner : MonoBehaviour
 
         if (spawnedGo != null)
         {
+            string networkId = Sanitize(assetName);
+            EnsureNetworkIdentity(spawnedGo, networkId);
+
+            var assetSync = FindFirstObjectByType<VRT.Pilots.Common.NetworkedAIAssetSync>();
+            if (assetSync != null)
+            {
+                assetSync.SendModelCreated(
+                    networkId,
+                    assetName,
+                    prompt,
+                    downloadUrl,
+                    spawnedGo.transform
+                );
+            }
+
             SaveRecord(new SpawnRecord
             {
                 name = assetName,
@@ -256,24 +271,10 @@ public class RuntimeModelSpawner : MonoBehaviour
                 scale = spawnedGo.transform.localScale,
                 behaviourPrompt = "" // filled in later by SaveBehaviourPrompt()
             });
-
-            EnsureNetworkIdentity(spawnedGo, Sanitize(assetName));
-
-            var assetSync = FindFirstObjectByType<VRT.Pilots.Common.NetworkedAIAssetSync>();
-            if (assetSync != null)
-            {
-                assetSync.SendModelCreated(
-                    Sanitize(assetName),
-                    assetName,
-                    prompt,
-                    downloadUrl,
-                    spawnedGo.transform
-                );
-            }
         }
     }
 
-    IEnumerator SpawnRemoteModelFromUrlCo(string modelId, string modelName, string prompt, string downloadUrl, Vector3 position, Quaternion rotation, Vector3 scale)
+    IEnumerator SpawnRemoteModelFromUrlCo(string networkId, string modelName, string prompt, string downloadUrl, Vector3 position, Quaternion rotation, Vector3 scale)
     {
         if (string.IsNullOrEmpty(downloadUrl))
         {
@@ -281,7 +282,7 @@ public class RuntimeModelSpawner : MonoBehaviour
             yield break;
         }
 
-        string safeId = string.IsNullOrEmpty(modelId) ? Sanitize(modelName) : Sanitize(modelId);
+        string safeId = string.IsNullOrEmpty(networkId) ? Sanitize(modelName) : Sanitize(networkId);
         string safeName = string.IsNullOrEmpty(modelName) ? safeId : Sanitize(modelName);
         string localPath = Path.Combine(ModelsDir, safeId + ".glb");
 
@@ -313,8 +314,8 @@ public class RuntimeModelSpawner : MonoBehaviour
         GameObject spawnedGo = null;
         yield return LoadGlbIntoScene(
             localPath,
-            string.IsNullOrEmpty(modelName) ? safeName : modelName,
-            string.IsNullOrEmpty(prompt) ? modelName : prompt,
+            modelName,
+            prompt,
             position,
             applyAutoPlacement: false,
             forcedEulerRotation: rotation.eulerAngles,
@@ -328,8 +329,8 @@ public class RuntimeModelSpawner : MonoBehaviour
 
             SaveRecord(new SpawnRecord
             {
-                name = spawnedGo.name,
-                prompt = prompt ?? "",
+                name = modelName,
+                prompt = prompt,
                 localGlbPath = localPath,
                 position = spawnedGo.transform.position,
                 eulerRotation = spawnedGo.transform.eulerAngles,
@@ -337,22 +338,6 @@ public class RuntimeModelSpawner : MonoBehaviour
                 behaviourPrompt = ""
             });
         }
-    }
-
-    void EnsureNetworkIdentity(GameObject go, string networkId)
-    {
-        if (go == null) return;
-
-        var sync = go.GetComponent<VRT.Pilots.Common.NetworkedAIObjectSync>();
-        if (sync == null)
-            sync = go.AddComponent<VRT.Pilots.Common.NetworkedAIObjectSync>();
-
-        if (!string.IsNullOrEmpty(networkId))
-            sync.NetworkId = networkId;
-
-        sync.ai = go.GetComponent<AIControllable>();
-        sync.targetRenderer = go.GetComponentInChildren<Renderer>(true);
-        sync.sceneStateStore = FindFirstObjectByType<SceneStateStore>();
     }
 
     IEnumerator LoadGlbIntoScene(
@@ -479,6 +464,31 @@ public class RuntimeModelSpawner : MonoBehaviour
         onDone?.Invoke(go);
     }
 
+    void EnsureNetworkIdentity(GameObject go, string networkId)
+    {
+        if (go == null) return;
+
+        var ai = go.GetComponent<AIControllable>();
+        if (ai == null)
+            ai = go.AddComponent<AIControllable>();
+
+        if (ai.targetRenderer == null)
+        {
+            var renderers = go.GetComponentsInChildren<Renderer>(true);
+            if (renderers != null && renderers.Length > 0)
+                ai.targetRenderer = renderers.OrderByDescending(r => r.bounds.size.magnitude).FirstOrDefault();
+        }
+
+        var sync = go.GetComponent<VRT.Pilots.Common.NetworkedAIObjectSync>();
+        if (sync == null)
+            sync = go.AddComponent<VRT.Pilots.Common.NetworkedAIObjectSync>();
+
+        sync.NetworkId = networkId;
+        sync.ai = ai;
+        sync.targetRenderer = ai.targetRenderer;
+        sync.sceneStateStore = FindFirstObjectByType<SceneStateStore>();
+    }
+
     IEnumerator RespawnSavedModels()
     {
         var reg = LoadRegistry();
@@ -505,6 +515,11 @@ public class RuntimeModelSpawner : MonoBehaviour
             // ✅ Reattach AI-generated behaviour code if one was saved for this model.
             // Wait one extra frame so the GameObject is fully initialised before
             // AICodeCommandHandler tries to compile and attach the script.
+            if (respawnedGo != null)
+            {
+                EnsureNetworkIdentity(respawnedGo, Sanitize(item.name));
+            }
+
             if (respawnedGo != null && !string.IsNullOrEmpty(item.behaviourPrompt))
             {
                 string capturedPrompt = item.behaviourPrompt;

@@ -31,9 +31,11 @@ namespace VRT.Pilots.Common
         public class AIPosterCreateMessage : BaseMessage
         {
             public string PosterId;
+            public string NetworkId;
             public string ImageUrl;
             public Vector3 Position;
             public Quaternion Rotation;
+            public Vector3 Scale;
             public float WidthMeters;
             public float HeightMeters;
         }
@@ -42,6 +44,7 @@ namespace VRT.Pilots.Common
         public class AIModelCreateMessage : BaseMessage
         {
             public string ModelId;
+            public string NetworkId;
             public string ModelName;
             public string Prompt;
             public string DownloadUrl;
@@ -64,9 +67,9 @@ namespace VRT.Pilots.Common
             base.Awake();
             ResolveReferences();
 
-            VRTOrchestratorSingleton.Comm.RegisterEventType(MessageTypeID.TID_AITextureSyncMessage, typeof(AITextureSyncMessage));
-            VRTOrchestratorSingleton.Comm.RegisterEventType(MessageTypeID.TID_AIPosterCreateMessage, typeof(AIPosterCreateMessage));
-            VRTOrchestratorSingleton.Comm.RegisterEventType(MessageTypeID.TID_AIModelCreateMessage, typeof(AIModelCreateMessage));
+            VRTOrchestratorSingleton.Comm.RegisterEventType(AIMessageTypeID.TID_AITextureSyncMessage, typeof(AITextureSyncMessage));
+            VRTOrchestratorSingleton.Comm.RegisterEventType(AIMessageTypeID.TID_AIPosterCreateMessage, typeof(AIPosterCreateMessage));
+            VRTOrchestratorSingleton.Comm.RegisterEventType(AIMessageTypeID.TID_AIModelCreateMessage, typeof(AIModelCreateMessage));
         }
 
         void OnEnable()
@@ -116,18 +119,32 @@ namespace VRT.Pilots.Common
 
             poster.SyncSizeFromTransform();
 
+            // Posters are runtime objects, so make sure they also have a stable network id.
+            var net = poster.GetComponent<NetworkedAIObjectSync>();
+            if (net == null)
+            {
+                net = poster.gameObject.AddComponent<NetworkedAIObjectSync>();
+                net.ai = poster.GetComponent<AIControllable>();
+                net.targetRenderer = poster.GetComponent<Renderer>();
+                net.sceneStateStore = sceneStateStore;
+            }
+            if (string.IsNullOrEmpty(net.NetworkId))
+                net.NetworkId = string.IsNullOrEmpty(poster.id) ? System.Guid.NewGuid().ToString() : poster.id;
+
             var msg = new AIPosterCreateMessage
             {
                 PosterId = poster.id,
+                NetworkId = net.NetworkId,
                 ImageUrl = poster.imageUrl,
                 Position = poster.transform.position,
                 Rotation = poster.transform.rotation,
+                Scale = poster.transform.localScale,
                 WidthMeters = poster.widthMeters,
                 HeightMeters = poster.heightMeters
             };
 
             Send(msg);
-            if (debug) Debug.Log($"[NetworkedAIAssetSync] Sent poster create: id={poster.id}, url={poster.imageUrl}");
+            if (debug) Debug.Log($"[NetworkedAIAssetSync] Sent poster create: id={poster.id}, networkId={net.NetworkId}, url={poster.imageUrl}");
         }
 
         public void SendModelCreated(string modelId, string modelName, string prompt, string downloadUrl, Transform modelTransform)
@@ -137,6 +154,7 @@ namespace VRT.Pilots.Common
             var msg = new AIModelCreateMessage
             {
                 ModelId = string.IsNullOrEmpty(modelId) ? modelName : modelId,
+                NetworkId = string.IsNullOrEmpty(modelId) ? modelName : modelId,
                 ModelName = modelName,
                 Prompt = prompt,
                 DownloadUrl = downloadUrl,
@@ -232,6 +250,8 @@ namespace VRT.Pilots.Common
             poster.name = "Poster_Remote";
             poster.transform.position = msg.Position;
             poster.transform.rotation = msg.Rotation;
+            if (msg.Scale != Vector3.zero)
+                poster.transform.localScale = msg.Scale;
 
             var persist = poster.AddComponent<PersistablePoster>();
             persist.id = msg.PosterId;
@@ -278,7 +298,7 @@ namespace VRT.Pilots.Common
             ai.useRigidbodyWhenAvailable = false;
 
             var sync = poster.AddComponent<NetworkedAIObjectSync>();
-            sync.NetworkId = persist.id;
+            sync.NetworkId = !string.IsNullOrEmpty(msg.NetworkId) ? msg.NetworkId : persist.id;
             sync.ai = ai;
             sync.targetRenderer = ai.targetRenderer;
             sync.sceneStateStore = sceneStateStore;
@@ -296,7 +316,8 @@ namespace VRT.Pilots.Common
             if (VRTOrchestratorSingleton.Comm.UserIsMaster)
                 VRTOrchestratorSingleton.Comm.SendTypeEventToAll(msg, true);
 
-            if (FindByNetworkId(msg.ModelId) != null) return;
+            string networkId = !string.IsNullOrEmpty(msg.NetworkId) ? msg.NetworkId : msg.ModelId;
+            if (FindByNetworkId(networkId) != null) return;
 
             ResolveReferences();
             if (runtimeModelSpawner == null)
@@ -306,7 +327,7 @@ namespace VRT.Pilots.Common
             }
 
             runtimeModelSpawner.SpawnRemoteModelFromUrl(
-                msg.ModelId,
+                networkId,
                 msg.ModelName,
                 msg.Prompt,
                 msg.DownloadUrl,
