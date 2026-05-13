@@ -839,7 +839,11 @@ public class VoiceCaptureAndSend : MonoBehaviour
                     }
 
                     Debug.Log($"[VoiceCaptureAndSend] run_code attaching to '{resolvedTarget.name}'");
-                    AICodeCommandHandler.Instance.HandleCommand(behaviourPrompt, resolvedTarget);
+                    AICodeCommandHandler.Instance.HandleRunCode(behaviourPrompt,
+                                                                resolvedTarget,
+                                                                effectId: System.Guid.NewGuid().ToString(),
+                                                                isReplay: false
+                                                                );
 
                     if (modelSpawner != null)
                         modelSpawner.SaveBehaviourPrompt(resolvedTarget.name, behaviourPrompt);

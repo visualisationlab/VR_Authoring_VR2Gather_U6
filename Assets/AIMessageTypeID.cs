@@ -13,4 +13,7 @@ public static class AIMessageTypeID
 
     public static readonly MessageTypeID TID_AIModelCreateMessage =
         (MessageTypeID)1004;
+
+    public static readonly MessageTypeID TID_AIRuntimeCodeSyncMessage =
+        (MessageTypeID)1005;
 }

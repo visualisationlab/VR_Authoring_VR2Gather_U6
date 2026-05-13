@@ -122,16 +122,51 @@ public class PosterSpawner : MonoBehaviour
         }
 
         // 8) Make gaze-editable
-        var ai = poster.AddComponent<AIControllable>();
+        var ai = poster.GetComponent<AIControllable>();
+        if (ai == null)
+            ai = poster.AddComponent<AIControllable>();
+
         ai.targetRenderer = poster.GetComponent<Renderer>();
         ai.rb = null;
         ai.useRigidbodyWhenAvailable = false;
 
-        // 9) ✅ Save state NOW — localPngPath is populated and the poster is fully
-        //    set up. This replaces the early RequestSave() in VoiceCaptureAndSend
-        //    which fired before the PNG download coroutine finished, resulting in
-        //    an empty localPngPath being persisted and a blank image on reload.
+        // 9) Add network identity + transform/color/scale sync for future edits.
+        //    NetworkedAIObjectSync inherits NetworkIdBehaviour, so this gives the
+        //    poster a stable NetworkId that can be used later for commands like:
+        //    "delete this poster", "rotate this poster", "make this poster bigger".
+        var objectSync = poster.GetComponent<NetworkedAIObjectSync>();
+        if (objectSync == null)
+            objectSync = poster.AddComponent<NetworkedAIObjectSync>();
+
+        objectSync.ai = ai;
+        objectSync.targetRenderer = poster.GetComponent<Renderer>();
+
         var store = FindFirstObjectByType<SceneStateStore>();
+        objectSync.sceneStateStore = store;
+
+        if (string.IsNullOrEmpty(objectSync.NetworkId))
+            objectSync.NetworkId = persist.id;
+
+        // Keep width/height metadata in sync before saving/sending.
+        persist.SyncSizeFromTransform();
+
+        // 10) Send poster creation to other machines.
+        //     Without this call, the poster is only created locally.
+        var assetSync = FindFirstObjectByType<NetworkedAIAssetSync>();
+        if (assetSync != null)
+        {
+            assetSync.SendPosterCreated(persist);
+            Debug.Log("[PosterSpawner] Sent poster create sync: " + imageUrl);
+        }
+        else
+        {
+            Debug.LogWarning("[PosterSpawner] NetworkedAIAssetSync not found. Poster will not sync.");
+        }
+
+        // 11) Save state NOW — localPngPath is populated and the poster is fully
+        //     set up. This replaces the early RequestSave() in VoiceCaptureAndSend
+        //     which fired before the PNG download coroutine finished, resulting in
+        //     an empty localPngPath being persisted and a blank image on reload.
         if (store != null) store.RequestSave();
     }
 

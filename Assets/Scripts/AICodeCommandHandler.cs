@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
+using VRT.Pilots.Common;
 
 public class AICodeCommandHandler : MonoBehaviour
 {
@@ -345,6 +346,27 @@ public class AICodeCommandHandler : MonoBehaviour
                 {
                     Log($"Attached to '{target.name}' successfully" +
                         (attempt > 1 ? " after retry." : "."));
+
+                    var net = target.GetComponent<NetworkIdBehaviour>();
+                    if (net == null)
+                        net = target.AddComponent<NetworkIdBehaviour>();
+
+                    if (string.IsNullOrEmpty(net.NetworkId))
+                        net.CreateNetworkId(true);
+
+                    bool particle = IsParticleCommand(userCommand);
+
+                    var sync = FindFirstObjectByType<NetworkedAIBehaviourSync>();
+                    if (sync != null && !isReplay)
+                    {
+                        sync.SendRuntimeCode(
+                            net.NetworkId,
+                            code,
+                            userCommand,
+                            effectId,
+                            particle
+                        );
+                    }
 
                     // --- Particle persistence ---
                     if (!isReplay && IsParticleCommand(userCommand) && effectId != null)
