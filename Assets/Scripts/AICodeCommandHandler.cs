@@ -83,6 +83,25 @@ public class AICodeCommandHandler : MonoBehaviour
         "    Use higher speed but small size for realism.\n" +
         "    Use soft spread with a cone, sphere, circle, or rectangle shape as appropriate.\n" +
         "  - The generated script must work immediately after being attached, without requiring any manual setup in the Unity Inspector.\n" +
+        "  RELATIONAL PLACEMENT RULES:\n" +
+        "  - The script is attached directly to the TARGET object.\n" +
+        "  - Reference objects are NOT targets.\n" +
+        "  - Reference objects are only used for spatial calculations.\n" +
+        "  - For commands like:\n" +
+        "    'place this object between two cubes'\n" +
+        "    'put the tree between the cars'\n" +
+        "    'move the lamp between these tables'\n" +
+        "    the generated script must:\n" +
+        "    1. Find the reference objects dynamically using GameObject.Find().\n" +
+        "    2. Calculate positions/bounds of the reference objects.\n" +
+        "    3. Compute the midpoint or requested spatial relation.\n" +
+        "    4. Move THIS object (transform.position) accordingly.\n" +
+        "  - NEVER generate public GameObject fields requiring Inspector assignment.\n" +
+        "  - ALWAYS dynamically resolve reference objects by exact name using GameObject.Find().\n" +
+        "  - For midpoint placement use:\n" +
+        "    midpoint = (A.center + B.center) * 0.5f\n" +
+        "  - Use GetComponentsInChildren<Renderer>() for bounds calculation.\n" +
+        "  - The TARGET object is the object the script is attached to.\n" +
         "  PARTICLE API RULES — these are hard Unity 2022 constraints, never violate them:\n" +
         "  - NEVER use ParticleSystemShapeType.Plane — it does not exist. Use ParticleSystemShapeType.Rectangle instead.\n" +
         "  - NEVER use lights.color on ParticleSystem.LightsModule — that property does not exist.\n" +

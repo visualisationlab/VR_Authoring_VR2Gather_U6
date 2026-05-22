@@ -424,17 +424,46 @@ public class VoiceCaptureAndSend : MonoBehaviour
         if (Input.GetKeyDown(startKey)) StartListening();
         if (Input.GetKeyDown(stopKey))  StopListening();
 
+        // XR controllers can become valid after Start(), especially in VR2Gather/OpenXR.
+        // Keep refreshing the right-hand controller until Unity reports a valid device.
+        if (!rightController.isValid)
+        {
+            var devices = new List<InputDevice>();
+            InputDevices.GetDevicesAtXRNode(XRNode.RightHand, devices);
+
+            if (devices.Count > 0)
+            {
+                rightController = devices[0];
+                Debug.Log("[VoiceCaptureAndSend] Right controller connected: " + rightController.name);
+            }
+        }
+
         if (rightController.isValid)
         {
-            if (rightController.TryGetFeatureValue(CommonUsages.primaryButton, out bool aPressed))
+            bool aPressed = false;
+
+            // Quest/most XR controllers expose the A button as primaryButton.
+            // We keep this separated so it is easy to add a fallback button later.
+            if (rightController.TryGetFeatureValue(CommonUsages.primaryButton, out bool primaryPressed))
             {
-                if (aPressed && !lastAPressed)
-                {
-                    if (!isRecording) StartListening();
-                    else              StopListening();
-                }
-                lastAPressed = aPressed;
+                aPressed = primaryPressed;
             }
+
+            if (aPressed && !lastAPressed)
+            {
+                Debug.Log("[VoiceCaptureAndSend] A button pressed");
+
+                if (!isRecording) StartListening();
+                else              StopListening();
+            }
+
+            lastAPressed = aPressed;
+        }
+        else
+        {
+            // Reset edge detection while no controller is valid, otherwise a stale press state
+            // can block the next real A-button press after reconnection.
+            lastAPressed = false;
         }
 
         if ((_jobs.Count > 0 || _completedJobs.Count > 0) && Time.realtimeSinceStartup >= _nextTickTime)
@@ -686,6 +715,83 @@ public class VoiceCaptureAndSend : MonoBehaviour
         bool executedAnything   = false;
         bool startedAnyAsyncJob = false;
 
+        // Special case: the server may return:
+        //   1) generate_model  -> e.g. Generated_Tree
+        //   2) run_code        -> place/move that Generated_Tree
+        //
+        // Do NOT execute both immediately. The run_code target does not exist yet,
+        // so it would fall back to the gaze target (often Floor) and attach there.
+        // Instead: generate/spawn first, wait until the object appears, then attach code.
+        if (commands != null && commands.Length >= 2)
+        {
+            Command gen = null;
+            Command code = null;
+
+            foreach (var c in commands)
+            {
+                if (c == null || string.IsNullOrWhiteSpace(c.action)) continue;
+
+                string a = c.action.Trim().ToLowerInvariant();
+                if (gen == null && a == "generate_model")
+                    gen = c;
+                else if (code == null && a == "run_code")
+                    code = c;
+            }
+
+            if (gen != null && code != null)
+            {
+                string genName = string.IsNullOrWhiteSpace(gen.name) ? "Generated_01" : gen.name.Trim();
+                bool codeTargetsGeneratedObject = false;
+
+                if (code.targets != null)
+                {
+                    foreach (string t in code.targets)
+                    {
+                        if (!string.IsNullOrWhiteSpace(t) &&
+                            string.Equals(t.Trim(), genName, System.StringComparison.OrdinalIgnoreCase))
+                        {
+                            codeTargetsGeneratedObject = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!codeTargetsGeneratedObject && !string.IsNullOrWhiteSpace(code.target))
+                {
+                    codeTargetsGeneratedObject =
+                        string.Equals(code.target.Trim(), genName, System.StringComparison.OrdinalIgnoreCase);
+                }
+
+                if (codeTargetsGeneratedObject)
+                {
+                    string genPrompt = string.IsNullOrWhiteSpace(gen.prompt) ? "simple object" : gen.prompt;
+                    string stage     = string.IsNullOrWhiteSpace(gen.stage) ? "preview" : gen.stage;
+                    string style     = string.IsNullOrWhiteSpace(gen.art_style) ? "realistic" : gen.art_style;
+                    string behaviour = string.IsNullOrWhiteSpace(code.behaviour_prompt)
+                        ? "place the generated object in the requested location"
+                        : code.behaviour_prompt;
+
+                    int jobId = StartJob("model+code", "GENERATING_MODEL", null, requestStartTime);
+                    Vector3 pos = GetPlacementPosition();
+
+                    Debug.Log($"[VoiceCaptureAndSend] Sequenced generate_model + run_code: generate '{genName}', then attach code.");
+                    StartCoroutine(GenerateAndAttachCode_Job(jobId, genPrompt, genName, pos, behaviour, stage, style));
+
+                    executedAnything   = true;
+                    startedAnyAsyncJob = true;
+
+                    if (aiIntentText != null)
+                        aiIntentText.text = $"Generating and placing: {genPrompt}";
+
+                    if (stateStore != null) stateStore.RequestSave();
+                    FinishJob(voiceJobId, true, "dispatched_model_then_code");
+                    _headerLine = "";
+                    RefreshJobsUI();
+                    return;
+                }
+            }
+        }
+
         if (commands != null && commands.Length > 0)
         {
             foreach (var c in commands)
@@ -916,15 +1022,17 @@ public class VoiceCaptureAndSend : MonoBehaviour
     // ─────────────────────────────────────────────────────────────────────────
 
     private IEnumerator GenerateAndAttachCode_Job(int jobId, string genPrompt, string genName,
-                                                  Vector3 pos, string behaviourPrompt)
+                                                  Vector3 pos, string behaviourPrompt,
+                                                  string stage = "preview", string artStyle = "realistic")
     {
-        if (modelSpawner == null)               { FinishJob(jobId, false, "no modelSpawner");        yield break; }
-        if (AICodeCommandHandler.Instance == null) { FinishJob(jobId, false, "no AICodeCommandHandler"); yield break; }
+        if (modelSpawner == null)                  { FinishJob(jobId, false, "no modelSpawner");          yield break; }
+        if (AICodeCommandHandler.Instance == null) { FinishJob(jobId, false, "no AICodeCommandHandler");  yield break; }
 
-        UpdateJob(jobId, "GENERATING", 10);
-        modelSpawner.GenerateAndSpawn(genPrompt, genName, pos, "preview", "realistic");
+        UpdateJob(jobId, "GENERATING_MODEL", 5);
+        modelSpawner.GenerateAndSpawn(genPrompt, genName, pos, stage, artStyle);
 
-        const float timeout = 120f;
+        // Meshy can sit at 99% for a while, so give this enough time.
+        const float timeout = 360f;
         float elapsed = 0f;
         GameObject spawnedObj = null;
 
@@ -934,22 +1042,40 @@ public class VoiceCaptureAndSend : MonoBehaviour
             elapsed += 1f;
 
             spawnedObj = FindGameObjectCaseInsensitive(genName);
-            if (spawnedObj != null) break;
+            if (spawnedObj != null && spawnedObj.activeInHierarchy)
+                break;
 
-            int pct = Mathf.Clamp(10 + Mathf.RoundToInt((elapsed / timeout) * 60f), 10, 70);
-            UpdateJob(jobId, $"WAITING ({elapsed:0}s)", pct);
+            int pct = Mathf.Clamp(5 + Mathf.RoundToInt((elapsed / timeout) * 70f), 5, 75);
+            UpdateJob(jobId, $"WAITING_FOR_{genName} ({elapsed:0}s)", pct);
         }
 
         if (spawnedObj == null)
         {
-            FinishJob(jobId, false, $"'{genName}' never appeared after {timeout}s");
+            FinishJob(jobId, false, $"'{genName}' never appeared after {timeout:0}s");
             yield break;
         }
 
-        UpdateJob(jobId, "ATTACHING_CODE", 80);
-        AICodeCommandHandler.Instance.HandleCommand(behaviourPrompt, spawnedObj);
-        modelSpawner.SaveBehaviourPrompt(genName, behaviourPrompt);
-        if (stateStore != null) stateStore.RequestSave();
+        // Wait a couple of frames so GLB child renderers/colliders are available before code asks for bounds.
+        yield return null;
+        yield return null;
+
+        UpdateJob(jobId, "ATTACHING_CODE", 85);
+        Debug.Log($"[VoiceCaptureAndSend] Generated object appeared: '{spawnedObj.name}'. Attaching run_code now.");
+
+        AICodeCommandHandler.Instance.HandleRunCode(
+            behaviourPrompt,
+            spawnedObj,
+            effectId: System.Guid.NewGuid().ToString(),
+            isReplay: false
+        );
+
+        if (modelSpawner != null)
+            modelSpawner.SaveBehaviourPrompt(genName, behaviourPrompt);
+
+        if (stateStore != null)
+            stateStore.RequestSave();
+
+        UpdateJob(jobId, "CODE_ATTACHED", 100);
         FinishJob(jobId, true, $"generated '{genName}' + code attached");
     }
 

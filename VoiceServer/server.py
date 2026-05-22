@@ -8,7 +8,7 @@ from fastapi import FastAPI, File, Form, UploadFile, BackgroundTasks
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from PIL import Image, ImageDraw
 import os, json, re, time, base64, io, socket
 from datetime import datetime
@@ -162,6 +162,26 @@ Resolution rules (apply in order):
 - NEVER invent object names not grounded in at least one of TRANSCRIPT, GAZE_TARGET, or VISION_CONTEXT.
 - NEVER use tags. Only use exact GameObject names.
 
+
+=== OBJECT EXISTENCE / GENERATION PLANNING RULE ===
+- If the user asks to place, put, move, or position an object that does NOT already exist in SCENE_OBJECTS, first create it.
+- For natural objects or complex 3D assets such as tree, car, chair, animal, statue, lamp, plant, house, fountain, etc., use generate_model first.
+- Then add a second run_code command that places the generated object using the requested relation.
+- Use the generated model name as the target of the second command. Choose a stable generated name, e.g. Generated_Tree, Generated_Chair, Generated_Car.
+- Example: "place a tree between these two cubes" means:
+  1. generate_model with prompt "tree" and name "Generated_Tree"
+  2. run_code with targets ["Generated_Tree"], reference_objects as the two cube GameObjects, relation "between".
+- For simple Unity primitives such as cube, sphere, cylinder, capsule, plane, use run_code to spawn the primitive directly instead of generate_model.
+
+=== STRUCTURED VISION GROUNDING RULE ===
+- VISION_CONTEXT may be structured JSON. Prefer exact names from:
+  - primary_references
+  - visible_objects[].name
+  - relations[].objects
+- For phrases like "these two cubes", use the two cube-like objects listed in primary_references if present.
+- For "between these two objects", put both objects in reference_objects and set relation to "between".
+- If VISION_CONTEXT identifies two visible cubes as Cube and Cube.001, do not collapse them into one object. Use both.
+
 === CORE RULES ===
 - Use generate_model ONLY for generating new 3D objects/models from text.
 - Use create_poster ONLY for poster/image generation.
@@ -258,6 +278,15 @@ GAZE_TARGET: "AvatarBody"
 VISION_CONTEXT: "The scene has a red tree on the right background and a white building on the left foreground. The user wants to relocate the red tree near the white building."
 {"commands":[{"action":"run_code","targets":["red tree"],"reference_objects":["white building"],"relation":"near","behaviour_prompt":"on Start, position the red tree 2 meters away from the white building's nearest face using renderer bounds; do not change the tree's Y scale or rotation"}]}
 
+
+User: "place a tree between these two cubes"
+VISION_CONTEXT: {"primary_references":["Cube","Cube.001"],"relations":[{"relation":"between_space","objects":["Cube","Cube.001"]}]}
+{"commands":[{"action":"generate_model","prompt":"tree","name":"Generated_Tree","stage":"preview","art_style":"realistic"},{"action":"run_code","targets":["Generated_Tree"],"reference_objects":["Cube","Cube.001"],"relation":"between","behaviour_prompt":"on Start, place Generated_Tree at the midpoint between Cube and Cube.001 using combined renderer bounds, then ground it on the nearest floor surface while preserving its scale and rotation"}]}
+
+User: "place a cube between these two cubes"
+VISION_CONTEXT: {"primary_references":["Cube","Cube.001"]}
+{"commands":[{"action":"run_code","targets":[],"reference_objects":["Cube","Cube.001"],"relation":"between","behaviour_prompt":"on Start, create a new Unity cube primitive named Generated_Cube at the midpoint between Cube and Cube.001 using renderer bounds, set scale to Vector3.one, and ground it on the nearest floor surface"}]}
+
 User: "hello how are you"
 {"commands":[{"action":"no_action","reason":"conversational input, no XR action needed"}]}
 """
@@ -315,14 +344,45 @@ def _set_job_progress(safe: str, stage: str, task_id: str, meshy_status: str, pr
         p = int(progress) if progress is not None else 0
     except Exception:
         p = 0
+
+    old_job = jobs.get(safe, {})
     jobs[safe] = {
         "stage": stage,
         "task_id": task_id,
         "meshy_status": str(meshy_status or "PENDING"),
         "progress": p,
         "status": "RUNNING",
-        "error": jobs.get(safe, {}).get("error", ""),
+        "error": old_job.get("error", ""),
+        # Keep last printed values so the terminal only shows NEW progress updates.
+        "_last_logged_status": old_job.get("_last_logged_status"),
+        "_last_logged_progress": old_job.get("_last_logged_progress"),
     }
+
+
+def _log_meshy_progress_once(safe: str, phase: str, task_id: str, meshy_status: str, progress: Any):
+    """
+    Print Meshy progress only when status or progress changes.
+    This avoids repeated terminal spam such as:
+    status=IN_PROGRESS progress=99
+    status=IN_PROGRESS progress=99
+    status=IN_PROGRESS progress=99
+    """
+    try:
+        p = int(progress) if progress is not None else 0
+    except Exception:
+        p = 0
+
+    status = str(meshy_status or "PENDING")
+    job = jobs.get(safe, {})
+
+    if job.get("_last_logged_status") == status and job.get("_last_logged_progress") == p:
+        return
+
+    job["_last_logged_status"] = status
+    job["_last_logged_progress"] = p
+    jobs[safe] = job
+
+    print(f"[meshy] {phase} {task_id} status={status} progress={p}", flush=True)
 
 
 def _generate_with_meshy_background(prompt: str, name: str, stage: str, art_style: str):
@@ -351,7 +411,7 @@ def _generate_with_meshy_background(prompt: str, name: str, stage: str, art_styl
             meshy_status = t.get("status") or "PENDING"
             progress = t.get("progress") or 0
             _set_job_progress(safe, stage, preview_task_id, meshy_status, progress)
-            print(f"[meshy] preview {preview_task_id} status={meshy_status} progress={progress}", flush=True)
+            _log_meshy_progress_once(safe, "preview", preview_task_id, meshy_status, progress)
             if meshy_status == "SUCCEEDED" and t.get("model_urls", {}).get("glb"):
                 preview_task = t
                 break
@@ -384,7 +444,7 @@ def _generate_with_meshy_background(prompt: str, name: str, stage: str, art_styl
             meshy_status = t.get("status") or "PENDING"
             progress = t.get("progress") or 0
             _set_job_progress(safe, stage, refine_task_id, meshy_status, progress)
-            print(f"[meshy] refine {refine_task_id} status={meshy_status} progress={progress}", flush=True)
+            _log_meshy_progress_once(safe, "refine", refine_task_id, meshy_status, progress)
             if meshy_status == "SUCCEEDED" and t.get("model_urls", {}).get("glb"):
                 refine_task = t
                 break
@@ -692,20 +752,104 @@ def _print_llm_debug(transcript: str, gaze_target: str, commands: list, reasonin
     print("=======================================\n")
 
 
+def _extract_likely_nouns(text: str) -> list[str]:
+    """Small helper to keep scene-name filtering deterministic and cheap."""
+    text = (text or "").lower()
+    noun_aliases = {
+        "cube": ["cube"],
+        "cubes": ["cube"],
+        "tree": ["tree"],
+        "trees": ["tree"],
+        "wall": ["wall"],
+        "walls": ["wall"],
+        "floor": ["floor", "ground", "terrain", "sidewalk"],
+        "ground": ["floor", "ground", "terrain", "sidewalk"],
+        "stairs": ["stairs", "stair"],
+        "stair": ["stairs", "stair"],
+        "table": ["table"],
+        "chair": ["chair"],
+        "building": ["building", "house", "home", "wall"],
+        "house": ["house", "home", "building", "Grote"],
+        "home": ["house", "home", "building", "Grote"],
+    }
+    keys: list[str] = []
+    for word, aliases in noun_aliases.items():
+        if re.search(rf"\b{re.escape(word)}\b", text):
+            keys.extend(aliases)
+    # Always keep common grounding/surface names available.
+    keys.extend(["floor", "ground"])
+    # Preserve order, remove duplicates.
+    seen = set()
+    out = []
+    for k in keys:
+        kl = k.lower()
+        if kl not in seen:
+            seen.add(kl)
+            out.append(k)
+    return out
+
+
+def filter_scene_objects_for_llm(scene_object_names: list[str], transcript: str, vision_context: str = "", gaze_target: str = "none", limit: int = 80) -> list[str]:
+    """
+    Avoid sending hundreds of scene names to the command LLM.
+    Keeps exact names mentioned by gaze/vision plus names related to transcript nouns.
+    """
+    if not scene_object_names:
+        return []
+
+    names = [str(n) for n in scene_object_names if str(n).strip()]
+    selected: list[str] = []
+
+    def add(name: str):
+        if name and name in names and name not in selected:
+            selected.append(name)
+
+    # Keep gaze target when meaningful.
+    if gaze_target and gaze_target.lower() not in {"none", "floor", "ground", "wall", "ceiling", "terrain"}:
+        add(gaze_target)
+
+    # Keep exact scene names that appear in the structured/narrative vision text.
+    vc = vision_context or ""
+    for n in names:
+        if n and n in vc:
+            add(n)
+
+    # Keep names matching likely transcript nouns.
+    keys = _extract_likely_nouns(transcript + " " + vc)
+    for key in keys:
+        kl = key.lower()
+        for n in names:
+            if kl in n.lower():
+                add(n)
+                if len(selected) >= limit:
+                    return selected
+
+    # Keep a few common Unity primitive names because commands often use them.
+    for n in names:
+        nl = n.lower()
+        if re.match(r"^cube(?:[._ -]?\d+)?$", nl) or nl in {"floor", "ground", "terrain"}:
+            add(n)
+            if len(selected) >= limit:
+                return selected
+
+    # Fallback: if we selected too little, include the first scene names, but cap hard.
+    for n in names:
+        add(n)
+        if len(selected) >= min(limit, 40 if len(selected) < 5 else limit):
+            break
+
+    return selected[:limit]
+
+
 def vision_describe(screenshots_b64: list[str], transcript: str, scene_object_names: list[str] = None) -> str:
     """
-    Calls GPT-4o with ALL screenshots captured during the recording session.
-    Passing multiple images gives the model a full picture of everything the
-    user looked at while speaking — not just one frozen moment.
-    Also receives the exact Unity GameObject names so it can ground its
-    description in real scene names rather than generic labels.
-    Falls back to empty string on any error so the pipeline keeps running.
+    Calls GPT-4o with screenshots and asks for structured visual grounding JSON.
+    The command LLM can then use exact object names instead of parsing a prose description.
     """
     if not screenshots_b64:
         return ""
 
     try:
-        # Build content: one image block per screenshot, then the text prompt
         content = []
         for b64 in screenshots_b64:
             content.append({
@@ -718,34 +862,40 @@ def vision_describe(screenshots_b64: list[str], transcript: str, scene_object_na
 
         scene_names_str = ""
         if scene_object_names:
+            # Vision gets the full list because it needs to match visual objects to exact Unity names.
             scene_names_str = (
-                f"\n\nThe Unity scene contains these exact GameObject names: "
-                f"{json.dumps(scene_object_names)}. "
-                f"When describing objects visible in the images, try to match them "
-                f"to one of these exact names wherever possible."
+                f"\n\nExact Unity GameObject names available in the scene:\n"
+                f"{json.dumps(scene_object_names)}\n"
+                f"Use exact names from this list when confident."
             )
 
         content.append({
             "type": "text",
             "text": (
-                f'These {len(screenshots_b64)} screenshot(s) were captured at 2-second intervals '
-                f'while the user was speaking in a Unity XR scene. '
-                f'Together they show everything the user looked at during their command. '
-                f'List all the significant 3D objects visible across all images, their approximate '
-                f'positions (left, right, center, foreground, background), and any spatial '
-                f'relationships between them (e.g. "a table is next to the window", '
-                f'"a red cube is on top of a gray box"). '
-                f'The user said: "{transcript}". '
-                f'Also note which object(s) the user is most likely referring to, '
-                f'using the exact Unity GameObject name from the provided list if you can match it. '
-                f'Be concise — 3-5 sentences max. Do not suggest actions.'
+                f"The user said: {json.dumps(transcript)}.\n"
+                f"These {len(screenshots_b64)} screenshot(s) were captured during the user's command in a Unity XR scene.\n"
+                f"Return ONLY valid JSON. No markdown. No explanation.\n"
+                f"Schema:\n"
+                f"{{\n"
+                f"  \"visible_objects\": [{{\"name\": \"exact Unity name or unknown\", \"visual_label\": \"short label\", \"position\": \"left/right/center/foreground/background\", \"confidence\": 0.0}}],\n"
+                f"  \"primary_references\": [\"exact object names most likely meant by this/that/these/two/etc\"],\n"
+                f"  \"relations\": [{{\"relation\": \"between/near/on_top/left_of/right_of/visible_pair/etc\", \"objects\": [\"exact names\"], \"confidence\": 0.0}}],\n"
+                f"  \"notes\": \"one short sentence, max 25 words\"\n"
+                f"}}\n"
+                f"Important grounding rules:\n"
+                f"- For 'these two cubes', identify TWO separate cube-like objects if visible.\n"
+                f"- If exact names are available, prefer names like Cube and Cube.001 over generic labels.\n"
+                f"- Ignore UI buttons unless the user is clearly referring to UI.\n"
+                f"- If only one object is visible, say so in notes and primary_references.\n"
+                f"- Do not suggest actions. Only describe visual grounding."
                 + scene_names_str
             ),
         })
 
         resp = client.chat.completions.create(
             model="gpt-4o",
-            max_tokens=300,
+            response_format={"type": "json_object"},
+            max_tokens=700,
             messages=[{"role": "user", "content": content}],
         )
         return resp.choices[0].message.content.strip()
@@ -758,24 +908,35 @@ def llm_decide(transcript: str, gaze_target: str = "none", vision_context: str =
     if not transcript:
         return {"commands": [{"action": "no_action", "reason": "empty transcript"}]}
 
+    filtered_scene_objects = filter_scene_objects_for_llm(
+        scene_object_names or [],
+        transcript=transcript,
+        vision_context=vision_context,
+        gaze_target=gaze_target,
+        limit=80,
+    )
+    if scene_object_names:
+        print(f"[Scene filter] Sent {len(filtered_scene_objects)} of {len(scene_object_names)} scene object names to command LLM", flush=True)
+
     user_message = f'GAZE_TARGET: "{gaze_target}"\nUSER SAID: "{transcript}"'
     if vision_context:
-        user_message += f'\nVISION_CONTEXT: "{vision_context}"'
-    if scene_object_names:
+        user_message += f'\nVISION_CONTEXT_JSON: {vision_context}'
+    if filtered_scene_objects:
         user_message += (
-            f'\nSCENE_OBJECTS: {json.dumps(scene_object_names)}'
-            f'\nCRITICAL: You MUST use only exact names from SCENE_OBJECTS in "targets" and "reference_objects". '
-            f'Never invent or paraphrase object names. Match the user\'s words to the closest exact name in SCENE_OBJECTS.'
+            f'\nSCENE_OBJECTS_FILTERED: {json.dumps(filtered_scene_objects)}'
+            f'\nCRITICAL: You MUST use only exact names from SCENE_OBJECTS_FILTERED in "targets" and "reference_objects", except for generated object names created by your own generate_model command. '
+            f'Never invent or paraphrase existing object names. Match the user\'s words and VISION_CONTEXT_JSON to the closest exact name in SCENE_OBJECTS_FILTERED.'
         )
 
     try:
         response = client.chat.completions.create(
             model=LLM_MODEL,
+            response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_message}
             ],
-            max_completion_tokens=1000,
+            max_completion_tokens=3000,
         )
 
         raw = response.choices[0].message.content.strip()
@@ -1014,4 +1175,4 @@ async def health():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000, access_log=False)
