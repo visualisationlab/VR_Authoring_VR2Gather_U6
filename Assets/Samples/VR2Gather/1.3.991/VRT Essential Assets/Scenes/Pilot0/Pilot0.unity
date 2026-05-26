@@ -145,7 +145,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 96c31e67b8f14db9998297ed80babe63
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -528,7 +528,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 496f252ba8dd4ba29f2a0c31f3ae7988
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -601,7 +601,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 07468fb0579b4271844fb00b9da84a9a
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -701,7 +701,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 6804974707024dac8ed4f9e8d4a09df6
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -834,7 +834,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 97946bc8249a4d46a22f5454c469e340
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -901,7 +901,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 9bb98405f94c40a1bd4e6ed7a2998824
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -995,7 +995,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: c81c26699a0e4b46a66735ac09b5791c
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -1135,7 +1135,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 13610029d3d24cd3b8ae84810819e457
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -1229,7 +1229,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 43536e985fd247148a40dfd9f8ccbe47
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -1362,7 +1362,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 3cc7e5fa11a7494593db15249eb0f44c
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -1462,7 +1462,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 51d80172827b42219134c80a3eda1d08
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -1562,7 +1562,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: dd2a177b8af3454e87ab48651db79da5
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -1704,7 +1704,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: c51c6cfee3f949648cd09eb8f3123b68
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -1980,7 +1980,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: b46e648132b34cb4b0a1d9d11bb68d51
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -2113,7 +2113,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: ba3ed429978b418783677be2568b0873
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -2213,7 +2213,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: dcc5087f250b4d899ad8027a97ec0e7e
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -2435,7 +2435,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 10a412350bc64f96b74ba724b655397f
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -2502,7 +2502,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: bf8f621b06a04db788d16d148b94d47a
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -3313,7 +3313,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 49ddc47a8dfd4a2195d37c75beb16dfd
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -3571,7 +3571,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: ae90849e7a104859b521e9129c5eda66
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -3778,7 +3778,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 03259d1c8528470bbe5c7ba9ef6ce30b
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -3878,7 +3878,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: c451b717941c4891b1bf8d2a3b82dcb3
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -3945,7 +3945,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: ddf52ad2ee434d0a9c3b75588107865a
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -4078,7 +4078,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 8723292c13444880a4c31f633d9397e0
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -4240,7 +4240,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: d2bae1f7c039479db273cd64e95f4324
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -4307,7 +4307,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: d8aef7ba6e7440959b4d6352ad3c1518
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -4579,7 +4579,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 49d3503d0d654df2a0890ec9ea0a30b4
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -4646,7 +4646,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 3a3ef2dce3ae403caa0c95a3ba24f072
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -4779,7 +4779,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 1b1c59eff8fc49f48bac84d5577fcd34
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -4923,7 +4923,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 33b295ba9f904d2c967635e73ad39484
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -5056,7 +5056,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: f0728ce564434b4abdf65029faa047c0
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -5123,7 +5123,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 4c9ff2ff26d64a49bb1ba1b20e8ded40
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -5217,7 +5217,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 50ce3bd362f3440c819fcef7bd792aca
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -5464,7 +5464,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 1777c2660b3d45149ecd9566489878a6
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -5564,7 +5564,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 00afd471bbf64779942c9e32778a572e
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -5741,7 +5741,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 5e74c7fa4d784db9b5238840b48ee2c2
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -6179,7 +6179,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 0857257b1ced43c6b2e097e95fd5cfa6
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -6265,7 +6265,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: af894cb6b98b4f42b8d76ef315fb27fa
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -6379,7 +6379,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 45e9e02b8e564719b9803d6ab6e229c6
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -6586,7 +6586,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: a05d46130d2e4ce7a93decb9e3cfe75e
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -6686,7 +6686,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: ec176cf71536468a8c12b3238d5d4548
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -6888,7 +6888,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 1c9cf050c9ee4c84bf75a545eafd4e2d
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -7204,7 +7204,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 10d4c3e82d7c446f90390dc3e9280ff4
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -7304,7 +7304,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 41d9ee05c8484e5c9db6214b58cf731e
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -7581,7 +7581,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: f153af2426c847878e550700750f8492
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -7855,7 +7855,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: de858a14f75a44da82f18070a26feec0
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -7922,7 +7922,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 1ea67835e87c4b09906f844c12483f10
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -8159,7 +8159,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: d74aa2116d4244268a97974087c80c0c
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -8226,7 +8226,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 104620cef71a479d994f6c3f61dca30e
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -8359,7 +8359,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: b2c7017a0de04ac1be0ba354eb48ba58
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -8515,7 +8515,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 63b5f4e4bc2a4c7a932185a3514f8f44
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -8904,7 +8904,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: a3c8a65bb50d4cf1a7ab493b2f0f3c03
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -9004,7 +9004,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: b15af573eda74868a31f3bf8deb09cf5
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -10131,7 +10131,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 9ae957755a1b43dd80c4b0dd7bef4953
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -10192,7 +10192,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: 07d211a1d7dd486ba93931687ad8fedd
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -10712,7 +10712,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: c063281e2196411ead34fac480985f54
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -10845,7 +10845,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: ed73ab23a81c41f7b5870c5062780cfc
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -10951,7 +10951,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65efcc096aec41b4a98d4f7975c8c49c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PersistableAIObject
-  id: 
+  id: b57d16fd1354467d856a0379c3f4682a
   textureUrl: 
   localTexturePath: 
   tileScale: 1.8
@@ -11084,10 +11084,20 @@ PrefabInstance:
       propertyPath: m_Name
       value: Tool_scenesetup
       objectReference: {fileID: 0}
+    - target: {fileID: 3638565545067612683, guid: 9908dcf284aef0e4a8ba245dc5f0f080,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4264426995196595072, guid: 9908dcf284aef0e4a8ba245dc5f0f080,
         type: 3}
       propertyPath: NetworkId
       value: cfe3c8b0-188e-4d74-bbf0-e04eca56228f
+      objectReference: {fileID: 0}
+    - target: {fileID: 5079020572382353702, guid: 9908dcf284aef0e4a8ba245dc5f0f080,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5100642624183079088, guid: 9908dcf284aef0e4a8ba245dc5f0f080,
         type: 3}
@@ -11143,6 +11153,41 @@ PrefabInstance:
         type: 3}
       propertyPath: NetworkId
       value: ac2f5bf1-6aa8-4842-85b9-13ec6a0aa9c8
+      objectReference: {fileID: 0}
+    - target: {fileID: 7520733603305954546, guid: 9908dcf284aef0e4a8ba245dc5f0f080,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -58.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7520733603305954546, guid: 9908dcf284aef0e4a8ba245dc5f0f080,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 140.6
+      objectReference: {fileID: 0}
+    - target: {fileID: 7520733603305954546, guid: 9908dcf284aef0e4a8ba245dc5f0f080,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.9716
+      objectReference: {fileID: 0}
+    - target: {fileID: 7520733603305954546, guid: 9908dcf284aef0e4a8ba245dc5f0f080,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7520733603305954546, guid: 9908dcf284aef0e4a8ba245dc5f0f080,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.23662946
+      objectReference: {fileID: 0}
+    - target: {fileID: 7520733603305954546, guid: 9908dcf284aef0e4a8ba245dc5f0f080,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7520733603305954546, guid: 9908dcf284aef0e4a8ba245dc5f0f080,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: -27.375
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
