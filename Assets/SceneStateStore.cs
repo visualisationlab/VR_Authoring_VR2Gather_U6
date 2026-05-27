@@ -66,10 +66,13 @@ public class SceneStateStore : MonoBehaviour
         foreach (var p in posters)
         {
             if (p == null) continue;
-            // ✅ Sync world-space size back into widthMeters/heightMeters before
-            // capturing, so any scale changes made since the poster was created
-            // (via voice commands or gaze editor) are correctly persisted.
-            p.SyncSizeFromTransform();
+
+            // IMPORTANT:
+            // Do NOT call p.SyncSizeFromTransform() here.
+            // Posters are often parented under scaled wall/building objects.
+            // Reading lossyScale during Save can convert a requested 3m poster
+            // into 0.03m when the parent has scale 100.
+            // widthMeters/heightMeters are the real-world source of truth.
             state.posters.Add(p.Capture());
         }
 

@@ -214,18 +214,32 @@ public class AICodeCommandHandler : MonoBehaviour
             {
                 GameObject found = hit.collider.gameObject;
 
-                // Walk up to the meaningful root — prefer PersistableAIObject root
-                var persist = found.GetComponentInParent<PersistableAIObject>();
-                if (persist != null)
+                // Walk up to the meaningful root.
+                // Special case: if the ray hits a poster or one of its children,
+                // keep the POSTER as the target. Posters are often parented under
+                // walls/buildings, and we do not want "resize this poster" to
+                // accidentally resize the parent wall/building.
+                var poster = found.GetComponentInParent<PersistablePoster>();
+                if (poster != null)
                 {
-                    found = persist.gameObject;
+                    found = poster.gameObject;
                 }
                 else
                 {
-                    Transform t = found.transform;
-                    while (t.parent != null && t.parent.parent != null)
-                        t = t.parent;
-                    found = t.gameObject;
+                    // Normal behaviour for walls, models, generated assets, etc.
+                    // Prefer the PersistableAIObject root.
+                    var persist = found.GetComponentInParent<PersistableAIObject>();
+                    if (persist != null)
+                    {
+                        found = persist.gameObject;
+                    }
+                    else
+                    {
+                        Transform t = found.transform;
+                        while (t.parent != null && t.parent.parent != null)
+                            t = t.parent;
+                        found = t.gameObject;
+                    }
                 }
 
                 Log("Auto-target (raycast): " + found.name);
