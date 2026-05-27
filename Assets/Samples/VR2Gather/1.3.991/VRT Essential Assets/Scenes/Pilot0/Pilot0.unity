@@ -188,20 +188,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.0099287, y: 0.87175804, z: 0}
   m_Center: {x: -0.057741247, y: -0.3742786, z: 0.000012558029}
---- !u!114 &54727159
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 54727152}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: f9728463-6639-4b78-9403-1aacd521af74
 --- !u!114 &54727160
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -214,7 +200,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: ff3258e4-b7e8-41df-9faa-2033878854de
   ai: {fileID: 54727157}
   targetRenderer: {fileID: 54727154}
@@ -411,10 +397,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1308346689352234213, guid: 7dbc52e63241dc844a7e1ffda79ad8b4,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 498329536}
-    - targetCorrespondingSourceObject: {fileID: 1308346689352234213, guid: 7dbc52e63241dc844a7e1ffda79ad8b4,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 498329535}
     - targetCorrespondingSourceObject: {fileID: 2738360075575815725, guid: 7dbc52e63241dc844a7e1ffda79ad8b4,
         type: 3}
@@ -431,10 +413,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2738360075575815725, guid: 7dbc52e63241dc844a7e1ffda79ad8b4,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 835279814}
-    - targetCorrespondingSourceObject: {fileID: 2738360075575815725, guid: 7dbc52e63241dc844a7e1ffda79ad8b4,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 835279813}
     - targetCorrespondingSourceObject: {fileID: -840897334994057669, guid: 7dbc52e63241dc844a7e1ffda79ad8b4,
         type: 3}
@@ -448,10 +426,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 278992594}
-    - targetCorrespondingSourceObject: {fileID: -840897334994057669, guid: 7dbc52e63241dc844a7e1ffda79ad8b4,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 278992593}
     - targetCorrespondingSourceObject: {fileID: -840897334994057669, guid: 7dbc52e63241dc844a7e1ffda79ad8b4,
         type: 3}
       insertIndex: -1
@@ -483,20 +457,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 605955113}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &150668141
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 150668137}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: cd95df58-e854-42f5-90c3-04b3ff2fd637
 --- !u!114 &150668142
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -509,7 +469,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 4c5590d6-d57f-4e89-8788-a9122a62a655
   ai: {fileID: 150668144}
   targetRenderer: {fileID: 150668139}
@@ -644,20 +604,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.0020000343, y: 0.012611022, z: 0.021042688}
   m_Center: {x: -0.0009999371, y: 0.006305417, z: 0.01098111}
---- !u!114 &169764372
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 169764365}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: df4b5071-084e-4140-ac2f-80e09aeedbef
 --- !u!114 &169764373
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -670,7 +616,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 46c53127-3af4-4c96-8c00-ee2b162882cd
   ai: {fileID: 169764370}
   targetRenderer: {fileID: 169764367}
@@ -744,20 +690,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.047381893, y: 0.060669713, z: 0.0034558547}
   m_Center: {x: -0.000905905, y: -0.01299191, z: -0.0017279276}
---- !u!114 &172040390
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 172040383}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 68f349a3-760c-49e6-966b-47b16cacc9d2
 --- !u!114 &172040391
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -770,7 +702,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: bafa9b0e-b304-4308-a3f3-b55d82d4ac2f
   ai: {fileID: 172040388}
   targetRenderer: {fileID: 172040385}
@@ -789,20 +721,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 605955113}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &172947392
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 172947388}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 7ca1cce2-c39a-46bc-91e7-cdd41a4274a9
 --- !u!114 &172947393
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -815,7 +733,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 5077260c-ff91-42ec-bcc2-61ca067cb70b
   ai: {fileID: 172947395}
   targetRenderer: {fileID: 172947390}
@@ -944,20 +862,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.043681987, y: 0, z: 0.058637906}
   m_Center: {x: -0.015101024, y: 0.0063054217, z: -0.117990546}
---- !u!114 &187337483
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 187337476}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 7da05ba9-9a90-4cc1-b5ab-3f70f5d038b6
 --- !u!114 &187337484
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -970,7 +874,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: d93eb02d-c287-4eb2-b7db-5f4c449b81a6
   ai: {fileID: 187337481}
   targetRenderer: {fileID: 187337478}
@@ -1038,20 +942,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.0010311779, y: 0.01261101, z: 0.0011839088}
   m_Center: {x: -0.005663844, y: 4.3360504e-10, z: -0.03767702}
---- !u!114 &223538037
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 223538030}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 86b35fa4-8bd4-4de9-b016-27127a431205
 --- !u!114 &223538038
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1064,7 +954,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: fea1f3de-6e17-450e-aea8-44d8066310ee
   ai: {fileID: 0}
   targetRenderer: {fileID: 0}
@@ -1178,20 +1068,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.0010311779, y: 0.01261101, z: 0.001183905}
   m_Center: {x: -0.005663844, y: 4.3790632e-10, z: -0.038289018}
---- !u!114 &240561614
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 240561607}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: f5cbdad3-a067-472a-bf34-4d5de34d62ab
 --- !u!114 &240561615
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1204,7 +1080,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 079527bd-3182-41a7-a721-2db5a7547f89
   ai: {fileID: 0}
   targetRenderer: {fileID: 0}
@@ -1272,20 +1148,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.0010311779, y: 0.01261101, z: 0.0011839088}
   m_Center: {x: -0.0056639034, y: -0.00000011877569, z: -0.037677035}
---- !u!114 &271005585
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 271005578}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 7ad94fa1-cb99-4cc5-bc2f-5e564714acc7
 --- !u!114 &271005586
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1298,7 +1160,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: fd9d69ec-e10c-4427-9579-0893614689f8
   ai: {fileID: 0}
   targetRenderer: {fileID: 0}
@@ -1317,20 +1179,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 1426127254}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &272634745
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 272634741}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 6c2e5ee6-74b4-4f6d-bec7-7785b8261434
 --- !u!114 &272634746
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1343,7 +1191,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: f3c1f0e6-db61-4a37-83a6-7ae44b88eb5f
   ai: {fileID: 272634748}
   targetRenderer: {fileID: 272634743}
@@ -1417,20 +1265,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 605955113}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &274302507
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 274302503}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 3c3b2606-583a-4afb-bdc0-83c3b7d6d1ed
 --- !u!114 &274302508
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1443,7 +1277,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 9f3e8ac5-be2d-4ca4-be40-bb845b79e92e
   ai: {fileID: 274302510}
   targetRenderer: {fileID: 274302505}
@@ -1529,27 +1363,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 90ef7638-5d07-48a6-971d-347787176e36
   ai: {fileID: 278992595}
   targetRenderer: {fileID: 278992590}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
   debug: 0
---- !u!114 &278992593
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 278992588}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 443747e9-357d-46cf-ba87-1db67c5a853f
 --- !u!114 &278992594
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1671,27 +1491,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: c2c3d56a-31c1-4a8e-b161-5932ca5aca18
   ai: {fileID: 284656710}
   targetRenderer: {fileID: 284656705}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
   debug: 0
---- !u!114 &284656708
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 284656703}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 98f2870a-156d-44ce-ab3a-df68f829e60a
 --- !u!114 &284656709
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2023,20 +1829,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.0010311779, y: 0.01261101, z: 0.001183905}
   m_Center: {x: -0.005663844, y: 4.3790632e-10, z: -0.038289018}
---- !u!114 &348466609
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 348466602}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: d92a9dc5-c583-4390-9146-57d91bfa1b60
 --- !u!114 &348466610
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2049,7 +1841,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: f4ca8123-b9ef-4b0f-9cfc-5fd3b5b546fa
   ai: {fileID: 0}
   targetRenderer: {fileID: 0}
@@ -2068,20 +1860,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 605955113}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &352647346
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 352647342}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: bda0ae5c-54ca-4a2e-a0be-80efa9142b7f
 --- !u!114 &352647347
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2094,7 +1872,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: c9381bd3-aeec-4b09-8974-18404747a05d
   ai: {fileID: 352647349}
   targetRenderer: {fileID: 352647344}
@@ -2168,20 +1946,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 605955113}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &374127334
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 374127330}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 6ab68be1-3be5-4365-98fa-77c7dd45446b
 --- !u!114 &374127335
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2194,7 +1958,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 19a55b44-0d26-47f4-aa1c-751a486fb5ac
   ai: {fileID: 374127337}
   targetRenderer: {fileID: 374127332}
@@ -2338,15 +2102,7 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2940503871062575337, guid: 5c649b6d591e53745b6962e7dc5c1b7b,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 284656708}
-    - targetCorrespondingSourceObject: {fileID: 2940503871062575337, guid: 5c649b6d591e53745b6962e7dc5c1b7b,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 284656707}
-    - targetCorrespondingSourceObject: {fileID: 4256719265790901103, guid: 5c649b6d591e53745b6962e7dc5c1b7b,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1170726004}
     - targetCorrespondingSourceObject: {fileID: 4256719265790901103, guid: 5c649b6d591e53745b6962e7dc5c1b7b,
         type: 3}
       insertIndex: -1
@@ -2363,14 +2119,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 1170726009}
-    - targetCorrespondingSourceObject: {fileID: 4256719265790901103, guid: 5c649b6d591e53745b6962e7dc5c1b7b,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1170726008}
-    - targetCorrespondingSourceObject: {fileID: 4256719265790901103, guid: 5c649b6d591e53745b6962e7dc5c1b7b,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1170726007}
   m_SourcePrefab: {fileID: 100100000, guid: 5c649b6d591e53745b6962e7dc5c1b7b, type: 3}
 --- !u!4 &461751321 stripped
 Transform:
@@ -2402,27 +2150,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: fa43af20-e07e-4b5e-8772-b32b914237c3
   ai: {fileID: 498329538}
   targetRenderer: {fileID: 498329533}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
   debug: 0
---- !u!114 &498329536
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 498329531}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 820c93ea-3fa6-4e3e-b59f-1c96501df131
 --- !u!114 &498329537
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2545,20 +2279,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.05005214, y: 0.015059045, z: 0.041765563}
   m_Center: {x: -0.0761212, y: -0.0037233126, z: -0.092163846}
---- !u!114 &580780036
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 580780029}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 8f2c95b2-78a0-45cd-8047-b2289bb81bc9
 --- !u!114 &580780037
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2571,7 +2291,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: f47cfd1c-38f3-4600-a405-7dfffc747524
   ai: {fileID: 580780034}
   targetRenderer: {fileID: 580780031}
@@ -2758,10 +2478,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 274302508}
-    - targetCorrespondingSourceObject: {fileID: 281855664364225751, guid: 8c76b833e7f412946bb668c0e89aab2d,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 274302507}
     - targetCorrespondingSourceObject: {fileID: -2045257923548263128, guid: 8c76b833e7f412946bb668c0e89aab2d,
         type: 3}
       insertIndex: -1
@@ -2778,10 +2494,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 172947393}
-    - targetCorrespondingSourceObject: {fileID: -2045257923548263128, guid: 8c76b833e7f412946bb668c0e89aab2d,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 172947392}
     - targetCorrespondingSourceObject: {fileID: 3821947792882470363, guid: 8c76b833e7f412946bb668c0e89aab2d,
         type: 3}
       insertIndex: -1
@@ -2798,10 +2510,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 1218966538}
-    - targetCorrespondingSourceObject: {fileID: 3821947792882470363, guid: 8c76b833e7f412946bb668c0e89aab2d,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1218966537}
     - targetCorrespondingSourceObject: {fileID: -2792282816643884325, guid: 8c76b833e7f412946bb668c0e89aab2d,
         type: 3}
       insertIndex: -1
@@ -2818,10 +2526,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 1003475513}
-    - targetCorrespondingSourceObject: {fileID: -2792282816643884325, guid: 8c76b833e7f412946bb668c0e89aab2d,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1003475512}
     - targetCorrespondingSourceObject: {fileID: 7404516373946815663, guid: 8c76b833e7f412946bb668c0e89aab2d,
         type: 3}
       insertIndex: -1
@@ -2838,10 +2542,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 1050969396}
-    - targetCorrespondingSourceObject: {fileID: 7404516373946815663, guid: 8c76b833e7f412946bb668c0e89aab2d,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1050969395}
     - targetCorrespondingSourceObject: {fileID: 1589966890679909940, guid: 8c76b833e7f412946bb668c0e89aab2d,
         type: 3}
       insertIndex: -1
@@ -2858,10 +2558,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 1554235665}
-    - targetCorrespondingSourceObject: {fileID: 1589966890679909940, guid: 8c76b833e7f412946bb668c0e89aab2d,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1554235664}
     - targetCorrespondingSourceObject: {fileID: -2266544901769330763, guid: 8c76b833e7f412946bb668c0e89aab2d,
         type: 3}
       insertIndex: -1
@@ -2878,10 +2574,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 374127335}
-    - targetCorrespondingSourceObject: {fileID: -2266544901769330763, guid: 8c76b833e7f412946bb668c0e89aab2d,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 374127334}
     - targetCorrespondingSourceObject: {fileID: 2966868636414137677, guid: 8c76b833e7f412946bb668c0e89aab2d,
         type: 3}
       insertIndex: -1
@@ -2898,10 +2590,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 1280911078}
-    - targetCorrespondingSourceObject: {fileID: 2966868636414137677, guid: 8c76b833e7f412946bb668c0e89aab2d,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1280911077}
     - targetCorrespondingSourceObject: {fileID: 7247266835316092563, guid: 8c76b833e7f412946bb668c0e89aab2d,
         type: 3}
       insertIndex: -1
@@ -2918,10 +2606,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 1224032802}
-    - targetCorrespondingSourceObject: {fileID: 7247266835316092563, guid: 8c76b833e7f412946bb668c0e89aab2d,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1224032801}
     - targetCorrespondingSourceObject: {fileID: -8101260718521786892, guid: 8c76b833e7f412946bb668c0e89aab2d,
         type: 3}
       insertIndex: -1
@@ -2938,10 +2622,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 2055607408}
-    - targetCorrespondingSourceObject: {fileID: -8101260718521786892, guid: 8c76b833e7f412946bb668c0e89aab2d,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2055607407}
     - targetCorrespondingSourceObject: {fileID: 5142621271306403043, guid: 8c76b833e7f412946bb668c0e89aab2d,
         type: 3}
       insertIndex: -1
@@ -2958,10 +2638,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 882760263}
-    - targetCorrespondingSourceObject: {fileID: 5142621271306403043, guid: 8c76b833e7f412946bb668c0e89aab2d,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 882760262}
     - targetCorrespondingSourceObject: {fileID: 2059172263733143483, guid: 8c76b833e7f412946bb668c0e89aab2d,
         type: 3}
       insertIndex: -1
@@ -2978,10 +2654,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 801471916}
-    - targetCorrespondingSourceObject: {fileID: 2059172263733143483, guid: 8c76b833e7f412946bb668c0e89aab2d,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 801471915}
     - targetCorrespondingSourceObject: {fileID: -5208414127025429256, guid: 8c76b833e7f412946bb668c0e89aab2d,
         type: 3}
       insertIndex: -1
@@ -2998,10 +2670,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 352647347}
-    - targetCorrespondingSourceObject: {fileID: -5208414127025429256, guid: 8c76b833e7f412946bb668c0e89aab2d,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 352647346}
     - targetCorrespondingSourceObject: {fileID: -4737666270518395106, guid: 8c76b833e7f412946bb668c0e89aab2d,
         type: 3}
       insertIndex: -1
@@ -3018,10 +2686,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 805057852}
-    - targetCorrespondingSourceObject: {fileID: -4737666270518395106, guid: 8c76b833e7f412946bb668c0e89aab2d,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 805057851}
     - targetCorrespondingSourceObject: {fileID: -4722203375841920323, guid: 8c76b833e7f412946bb668c0e89aab2d,
         type: 3}
       insertIndex: -1
@@ -3038,10 +2702,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 2144113137}
-    - targetCorrespondingSourceObject: {fileID: -4722203375841920323, guid: 8c76b833e7f412946bb668c0e89aab2d,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2144113136}
     - targetCorrespondingSourceObject: {fileID: -504768301439084107, guid: 8c76b833e7f412946bb668c0e89aab2d,
         type: 3}
       insertIndex: -1
@@ -3058,10 +2718,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 1356678346}
-    - targetCorrespondingSourceObject: {fileID: -504768301439084107, guid: 8c76b833e7f412946bb668c0e89aab2d,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1356678345}
     - targetCorrespondingSourceObject: {fileID: -7589110520426964021, guid: 8c76b833e7f412946bb668c0e89aab2d,
         type: 3}
       insertIndex: -1
@@ -3078,10 +2734,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 890370689}
-    - targetCorrespondingSourceObject: {fileID: -7589110520426964021, guid: 8c76b833e7f412946bb668c0e89aab2d,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 890370688}
     - targetCorrespondingSourceObject: {fileID: -7899867795350486355, guid: 8c76b833e7f412946bb668c0e89aab2d,
         type: 3}
       insertIndex: -1
@@ -3098,10 +2750,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 150668142}
-    - targetCorrespondingSourceObject: {fileID: -7899867795350486355, guid: 8c76b833e7f412946bb668c0e89aab2d,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 150668141}
   m_SourcePrefab: {fileID: 100100000, guid: 8c76b833e7f412946bb668c0e89aab2d, type: 3}
 --- !u!4 &605955114 stripped
 Transform:
@@ -3356,20 +3004,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.018194271, y: 0.01774661, z: 0.016369386}
   m_Center: {x: 0.013270218, y: 0.0025164522, z: -0.006726166}
---- !u!114 &701973270
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 701973263}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 46958fd2-c263-42bb-9281-c5c22f3c3532
 --- !u!114 &701973271
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3382,7 +3016,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 153e711f-b25e-4b97-a48b-b79ea028ff3a
   ai: {fileID: 701973268}
   targetRenderer: {fileID: 701973265}
@@ -3614,20 +3248,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.002000034, y: 0.012611025, z: 0.019237138}
   m_Center: {x: -0.0009999363, y: 0.006305418, z: 0.011424122}
---- !u!114 &738523319
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 738523312}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 2d3a2dc5-8a6e-4ec3-a9e8-982657bd450b
 --- !u!114 &738523320
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3640,7 +3260,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 1c8eac38-1422-4945-bfd4-f754298fc60a
   ai: {fileID: 738523317}
   targetRenderer: {fileID: 738523314}
@@ -3733,20 +3353,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 605955113}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &801471915
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 801471911}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 8adf1cb7-46a4-4b85-acaf-182e767400ef
 --- !u!114 &801471916
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3759,7 +3365,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 8328c77d-dc17-4944-acae-91e153fe32cb
   ai: {fileID: 801471918}
   targetRenderer: {fileID: 801471913}
@@ -3833,20 +3439,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 605955113}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &805057851
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 805057847}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 47f78eb5-00ee-4070-96a1-f5625e64daa1
 --- !u!114 &805057852
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3859,7 +3451,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: e09e0747-1d39-47f6-969a-32a210fb2391
   ai: {fileID: 805057854}
   targetRenderer: {fileID: 805057849}
@@ -3988,20 +3580,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.002000034, y: 0.012611024, z: 0.01905073}
   m_Center: {x: -0.0010000552, y: 0.0063054175, z: 0.011517322}
---- !u!114 &832424483
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 832424476}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 438f618a-c576-4789-89a5-71da574f76eb
 --- !u!114 &832424484
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4014,7 +3592,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 08ee48d7-43b4-4396-8873-3b40486b4394
   ai: {fileID: 832424481}
   targetRenderer: {fileID: 832424478}
@@ -4045,27 +3623,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 1ce5e870-3dac-4154-b0ef-12c8f2e56b3c
   ai: {fileID: 835279816}
   targetRenderer: {fileID: 835279811}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
   debug: 0
---- !u!114 &835279814
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 835279809}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 8da27847-90a9-4e4c-b110-d10fb4f36d1f
 --- !u!114 &835279815
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4195,20 +3759,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 1426127254}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &868459537
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 868459533}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 017755a4-f343-437f-9175-236a85e89399
 --- !u!114 &868459538
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4221,7 +3771,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 1b841723-0a5e-4459-a872-7bcedec32d49
   ai: {fileID: 868459540}
   targetRenderer: {fileID: 868459535}
@@ -4350,20 +3900,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.0020000343, y: 0.012611022, z: 0.021042688}
   m_Center: {x: -0.0010000563, y: 0.006305417, z: 0.01098111}
---- !u!114 &877166044
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 877166037}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 25ab9677-03a2-4e32-80bb-e4be0f2b161f
 --- !u!114 &877166045
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4376,7 +3912,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 2f965426-1dae-4648-b81a-1b981e901e69
   ai: {fileID: 877166042}
   targetRenderer: {fileID: 877166039}
@@ -4470,10 +4006,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8044169590208165604, guid: 732a3076edb10dc4fbb715bc6594be29,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1035690232}
-    - targetCorrespondingSourceObject: {fileID: 8044169590208165604, guid: 732a3076edb10dc4fbb715bc6594be29,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 1035690231}
     - targetCorrespondingSourceObject: {fileID: -3752767995900755161, guid: 732a3076edb10dc4fbb715bc6594be29,
         type: 3}
@@ -4490,10 +4022,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -3752767995900755161, guid: 732a3076edb10dc4fbb715bc6594be29,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1069008518}
-    - targetCorrespondingSourceObject: {fileID: -3752767995900755161, guid: 732a3076edb10dc4fbb715bc6594be29,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 1069008517}
     - targetCorrespondingSourceObject: {fileID: 344175530908771653, guid: 732a3076edb10dc4fbb715bc6594be29,
         type: 3}
@@ -4507,10 +4035,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 1146849950}
-    - targetCorrespondingSourceObject: {fileID: 344175530908771653, guid: 732a3076edb10dc4fbb715bc6594be29,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1146849949}
     - targetCorrespondingSourceObject: {fileID: 344175530908771653, guid: 732a3076edb10dc4fbb715bc6594be29,
         type: 3}
       insertIndex: -1
@@ -4534,20 +4058,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 605955113}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &882760262
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 882760258}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 381e8ae5-1223-4791-a198-9aa50d72d2c3
 --- !u!114 &882760263
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4560,7 +4070,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: d2a6327c-e082-493b-8ac4-96d8e236c76e
   ai: {fileID: 882760265}
   targetRenderer: {fileID: 882760260}
@@ -4689,20 +4199,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.0064095715, y: 0.06383176, z: 0.011501209}
   m_Center: {x: 0.009095405, y: -0.033982225, z: -0.076615915}
---- !u!114 &886572590
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 886572583}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 0c633108-552b-407d-90cb-a92047cebcb7
 --- !u!114 &886572591
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4715,7 +4211,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 5c9fb3ff-94b7-42bf-84c9-a9912a525f51
   ai: {fileID: 886572588}
   targetRenderer: {fileID: 886572585}
@@ -4734,20 +4230,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 605955113}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &890370688
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 890370684}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 3faf297a-c5ac-4e15-ae54-a7f9a586bc0e
 --- !u!114 &890370689
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4760,7 +4242,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 70db61bc-2ba4-4dc0-b8e4-9e60bf93846f
   ai: {fileID: 890370691}
   targetRenderer: {fileID: 890370686}
@@ -4966,20 +4448,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.0020000343, y: 0.012611022, z: 0.021042688}
   m_Center: {x: -0.0009999967, y: 0.006305417, z: 0.01098111}
---- !u!114 &923510082
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 923510075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 7e45f880-3db7-4402-9976-8e93ae6da0f0
 --- !u!114 &923510083
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4992,7 +4460,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: fb6bfaaf-7ece-475c-8da3-a2b214f60807
   ai: {fileID: 923510080}
   targetRenderer: {fileID: 923510077}
@@ -5011,20 +4479,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 605955113}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1003475512
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1003475508}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 13ebeea4-5e07-4d9f-b6b9-6117bc73724d
 --- !u!114 &1003475513
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5037,7 +4491,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 3aa623c4-487f-4e22-9e44-e333d5bbe305
   ai: {fileID: 1003475515}
   targetRenderer: {fileID: 1003475510}
@@ -5166,20 +4620,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.0071964073, y: 0.0638319, z: 0.09005154}
   m_Center: {x: -0.09754828, y: -0.025610508, z: -0.16504934}
---- !u!114 &1025220151
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1025220144}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: e55b297a-8265-4ca1-b742-a94570f22b7c
 --- !u!114 &1025220152
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5192,7 +4632,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 53f66824-e7b8-4b16-887d-14e3488b40b7
   ai: {fileID: 1025220149}
   targetRenderer: {fileID: 1025220146}
@@ -5260,20 +4700,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.0010311779, y: 0.01261101, z: 0.001183905}
   m_Center: {x: -0.0056639034, y: -0.00000011877138, z: -0.038289018}
---- !u!114 &1031259888
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1031259881}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 330bf80a-29a8-472f-b438-2d0276cfcabf
 --- !u!114 &1031259889
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5286,7 +4712,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: eee79c36-06df-446a-8c01-f93ae13f6ee9
   ai: {fileID: 0}
   targetRenderer: {fileID: 0}
@@ -5367,10 +4793,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7178849939236094342, guid: 8df56e705035a924dbc3bd4c1e08a479,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 54727159}
-    - targetCorrespondingSourceObject: {fileID: 7178849939236094342, guid: 8df56e705035a924dbc3bd4c1e08a479,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 54727158}
     - targetCorrespondingSourceObject: {fileID: 7178849939236094342, guid: 8df56e705035a924dbc3bd4c1e08a479,
         type: 3}
@@ -5384,10 +4806,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 1559155658}
-    - targetCorrespondingSourceObject: {fileID: 3994765593269508792, guid: 8df56e705035a924dbc3bd4c1e08a479,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1559155657}
     - targetCorrespondingSourceObject: {fileID: 3994765593269508792, guid: 8df56e705035a924dbc3bd4c1e08a479,
         type: 3}
       insertIndex: -1
@@ -5431,27 +4849,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: b170a44a-9cd8-4f7e-abd0-e934222a0afd
   ai: {fileID: 1035690234}
   targetRenderer: {fileID: 1035690229}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
   debug: 0
---- !u!114 &1035690232
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1035690227}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 0843fa34-7bf4-478b-ac43-0a541e98dcff
 --- !u!114 &1035690233
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5519,20 +4923,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 605955113}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1050969395
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1050969391}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 02b53ff8-1e9b-4e94-8506-b0985788b475
 --- !u!114 &1050969396
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5545,7 +4935,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 6ad91254-7ec3-4c02-b100-ab4edc34048a
   ai: {fileID: 1050969398}
   targetRenderer: {fileID: 1050969393}
@@ -5708,27 +5098,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 4df3674a-0cb9-4396-8537-e2a35d600130
   ai: {fileID: 1069008520}
   targetRenderer: {fileID: 1069008515}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
   debug: 0
---- !u!114 &1069008518
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1069008513}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: b8aacd10-ea16-4b40-b6ae-1e8aef4fdc70
 --- !u!114 &1069008519
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5970,10 +5346,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 544103076966404451, guid: a4d329231a80e164d9e2b074df6555de,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1643153498}
-    - targetCorrespondingSourceObject: {fileID: 544103076966404451, guid: a4d329231a80e164d9e2b074df6555de,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 1643153497}
     - targetCorrespondingSourceObject: {fileID: -7164179425379821848, guid: a4d329231a80e164d9e2b074df6555de,
         type: 3}
@@ -5987,10 +5359,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 1436948564}
-    - targetCorrespondingSourceObject: {fileID: -7164179425379821848, guid: a4d329231a80e164d9e2b074df6555de,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1436948563}
     - targetCorrespondingSourceObject: {fileID: -7164179425379821848, guid: a4d329231a80e164d9e2b074df6555de,
         type: 3}
       insertIndex: -1
@@ -6146,27 +5514,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 9beeee55-697e-425d-a9ab-818a66d3c04b
   ai: {fileID: 1146849951}
   targetRenderer: {fileID: 1146849946}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
   debug: 0
---- !u!114 &1146849949
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1146849944}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: ba4f86f7-6fef-4777-b53e-71f703cd82f9
 --- !u!114 &1146849950
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6246,7 +5600,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 171b702c-4e66-4eef-83ba-9aa7dc153c66
   ai: {fileID: 1170726003}
   targetRenderer: {fileID: 1170725999}
@@ -6287,53 +5641,6 @@ MonoBehaviour:
   rb: {fileID: 0}
   useRigidbodyWhenAvailable: 1
   materialName: 
---- !u!114 &1170726004
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1170725997}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 4127458f-7bdc-40ce-8d13-3526adbd7a7f
---- !u!114 &1170726007
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1170725997}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
-  NetworkId: 585b564a-bbc7-4114-85b0-0eb163f7f51f
-  ai: {fileID: 1170726003}
-  targetRenderer: {fileID: 1170725999}
-  sceneStateStore: {fileID: 225680293}
-  updateFrequency: 20
-  debug: 0
---- !u!114 &1170726008
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1170725997}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 64e507ae-700d-4c4d-bdc4-71662aeb33a2
 --- !u!65 &1170726009
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -6422,20 +5729,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.002000034, y: 0.012611024, z: 0.01889369}
   m_Center: {x: -0.0009999953, y: 0.0063054175, z: 0.0115958415}
---- !u!114 &1187819318
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1187819311}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 93595cc5-e30f-4fd8-934c-16be0ef5d6ca
 --- !u!114 &1187819319
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6448,7 +5741,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 07667cc8-229a-44e7-adf5-c0403dfcffc4
   ai: {fileID: 1187819316}
   targetRenderer: {fileID: 1187819313}
@@ -6541,20 +5834,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 605955113}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1218966537
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1218966533}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: c3eac3bf-10d1-46a9-b433-61df04d3e202
 --- !u!114 &1218966538
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6567,7 +5846,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: c31276a0-6d98-41f8-be2d-758d9dfd9254
   ai: {fileID: 1218966540}
   targetRenderer: {fileID: 1218966535}
@@ -6641,20 +5920,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 605955113}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1224032801
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1224032797}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 5021886a-37f8-4310-91db-7e6fe09d93d5
 --- !u!114 &1224032802
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6667,7 +5932,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 8c88ee6c-ed97-4c94-87a0-31d7e2483007
   ai: {fileID: 1224032804}
   targetRenderer: {fileID: 1224032799}
@@ -6931,20 +6196,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.048903402, y: 0.0023275968, z: 0.06381217}
   m_Center: {x: 0.10683982, y: -0.0021512648, z: 0.0049747312}
---- !u!114 &1241054829
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1241054822}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 8c2c4eb5-0c2d-488b-9f74-095226db4818
 --- !u!114 &1241054830
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6957,7 +6208,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: f6482577-f1a6-428e-baf3-f8d38abdb6fc
   ai: {fileID: 1241054827}
   targetRenderer: {fileID: 1241054824}
@@ -7159,20 +6410,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 605955113}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1280911077
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1280911073}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 8f129054-7813-4a24-a8c5-5712a7757a1f
 --- !u!114 &1280911078
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7185,7 +6422,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: c3b0e039-1ba2-41c8-ae5e-f07a3fab756d
   ai: {fileID: 1280911080}
   targetRenderer: {fileID: 1280911075}
@@ -7259,20 +6496,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 605955113}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1356678345
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1356678341}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: f3e5d0d3-b8b6-41b5-9d3d-aa629bdb34d1
 --- !u!114 &1356678346
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7285,7 +6508,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 1825b075-9961-4162-94fa-75a22aa06540
   ai: {fileID: 1356678348}
   targetRenderer: {fileID: 1356678343}
@@ -7536,20 +6759,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 1426127254}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1394688744
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1394688740}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: ea8959f6-9ea9-423d-8d25-9a3f11d58797
 --- !u!114 &1394688745
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7562,7 +6771,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 7781a5c5-5aae-4b53-8de4-8fc94ef8513a
   ai: {fileID: 1394688747}
   targetRenderer: {fileID: 1394688742}
@@ -7707,10 +6916,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 1912493525}
-    - targetCorrespondingSourceObject: {fileID: -1599826595754709761, guid: f66f7866fa5ea1244a37afbcdcaa1c99,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1912493524}
     - targetCorrespondingSourceObject: {fileID: 1517243179397015154, guid: f66f7866fa5ea1244a37afbcdcaa1c99,
         type: 3}
       insertIndex: -1
@@ -7727,10 +6932,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 1605595628}
-    - targetCorrespondingSourceObject: {fileID: 1517243179397015154, guid: f66f7866fa5ea1244a37afbcdcaa1c99,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1605595627}
     - targetCorrespondingSourceObject: {fileID: 4181134037664333174, guid: f66f7866fa5ea1244a37afbcdcaa1c99,
         type: 3}
       insertIndex: -1
@@ -7747,10 +6948,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 272634746}
-    - targetCorrespondingSourceObject: {fileID: 4181134037664333174, guid: f66f7866fa5ea1244a37afbcdcaa1c99,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 272634745}
     - targetCorrespondingSourceObject: {fileID: -3341793300662665238, guid: f66f7866fa5ea1244a37afbcdcaa1c99,
         type: 3}
       insertIndex: -1
@@ -7767,10 +6964,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 1394688745}
-    - targetCorrespondingSourceObject: {fileID: -3341793300662665238, guid: f66f7866fa5ea1244a37afbcdcaa1c99,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1394688744}
     - targetCorrespondingSourceObject: {fileID: -8832112604993597326, guid: f66f7866fa5ea1244a37afbcdcaa1c99,
         type: 3}
       insertIndex: -1
@@ -7787,10 +6980,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 868459538}
-    - targetCorrespondingSourceObject: {fileID: -8832112604993597326, guid: f66f7866fa5ea1244a37afbcdcaa1c99,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 868459537}
   m_SourcePrefab: {fileID: 100100000, guid: f66f7866fa5ea1244a37afbcdcaa1c99, type: 3}
 --- !u!4 &1426127255 stripped
 Transform:
@@ -7822,27 +7011,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: da9b9b78-fe22-450c-b485-abb60edfead3
   ai: {fileID: 1436948565}
   targetRenderer: {fileID: 1436948560}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
   debug: 0
---- !u!114 &1436948563
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1436948558}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 25838b19-adc2-4c06-9d11-7402a85d1d32
 --- !u!114 &1436948564
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7965,20 +7140,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.0013389209, y: 0.04251581, z: 0.033866394}
   m_Center: {x: -0.0015235879, y: -0.021609979, z: 0.040304493}
---- !u!114 &1439943994
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1439943987}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: b0e57c87-19ea-4155-8f21-dd9215cfe2e2
 --- !u!114 &1439943995
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7991,7 +7152,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 189e222b-65fd-4cf1-be6f-b7d359cfc890
   ai: {fileID: 1439943992}
   targetRenderer: {fileID: 1439943989}
@@ -8114,20 +7275,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 605955113}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1554235664
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1554235660}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: ba51a174-0a40-4ca2-a3ef-8c79a7cd0003
 --- !u!114 &1554235665
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8140,7 +7287,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 5ab8e453-e132-4fd8-a20a-7a105f22817a
   ai: {fileID: 1554235667}
   targetRenderer: {fileID: 1554235662}
@@ -8269,20 +7416,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.6362513, y: 0.7928339, z: 0.01873104}
   m_Center: {x: -0.24699731, y: -0.35316354, z: 0.00937858}
---- !u!114 &1559155657
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1559155650}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: dc6521b2-ac3e-4654-8fe5-e8f34f983055
 --- !u!114 &1559155658
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8295,7 +7428,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 9942386b-c29b-4198-ac41-3adfa928383a
   ai: {fileID: 1559155655}
   targetRenderer: {fileID: 1559155652}
@@ -8314,20 +7447,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 1426127254}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1605595627
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1605595623}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 5e29b684-36cb-4af4-a508-8ab0a552b35d
 --- !u!114 &1605595628
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8340,7 +7459,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: f68eb5ad-2b46-4a86-b7ec-0d4f3973a73d
   ai: {fileID: 1605595630}
   targetRenderer: {fileID: 1605595625}
@@ -8482,27 +7601,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: f49e18f0-57e8-4005-bddb-56a02c260743
   ai: {fileID: 1643153500}
   targetRenderer: {fileID: 1643153495}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
   debug: 0
---- !u!114 &1643153498
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1643153493}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 5797a196-65c9-42c7-afff-c5cd7cf95446
 --- !u!114 &1643153499
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8947,20 +8052,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.043246496, y: 0.06383173, z: 0.01416544}
   m_Center: {x: -0.0153179085, y: -0.02561048, z: -0.06738731}
---- !u!114 &1777075407
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1777075400}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 096363e7-f445-4a4d-80ce-d10daef23f4a
 --- !u!114 &1777075408
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8973,7 +8064,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: c39e06d5-1911-463b-a5c0-3f9f2b81c4f0
   ai: {fileID: 1777075405}
   targetRenderer: {fileID: 1777075402}
@@ -9047,20 +8138,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.034033228, y: 0.06933685, z: 0.0053426344}
   m_Center: {x: -0.006628212, y: -0.024315566, z: -0.1516414}
---- !u!114 &1789629849
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1789629842}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 3f13a3c3-816d-4c83-8912-d1d3a4a2cca4
 --- !u!114 &1789629850
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9073,7 +8150,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: b8a9c96d-0b2d-43c4-82fc-9ed89271be54
   ai: {fileID: 1789629847}
   targetRenderer: {fileID: 1789629844}
@@ -9614,10 +8691,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -4184922972836196953, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1241054829}
-    - targetCorrespondingSourceObject: {fileID: -4184922972836196953, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 1241054828}
     - targetCorrespondingSourceObject: {fileID: -4184922972836196953, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
@@ -9631,10 +8704,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 187337484}
-    - targetCorrespondingSourceObject: {fileID: 7242771287309200211, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 187337483}
     - targetCorrespondingSourceObject: {fileID: 7242771287309200211, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
@@ -9654,10 +8723,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -6095090775088718324, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1025220151}
-    - targetCorrespondingSourceObject: {fileID: -6095090775088718324, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 1025220150}
     - targetCorrespondingSourceObject: {fileID: -6095090775088718324, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
@@ -9671,10 +8736,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 886572591}
-    - targetCorrespondingSourceObject: {fileID: 8569455031338875131, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 886572590}
     - targetCorrespondingSourceObject: {fileID: 8569455031338875131, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
@@ -9694,10 +8755,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 6425209683498024757, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 2046258426}
-    - targetCorrespondingSourceObject: {fileID: 6425209683498024757, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 2046258425}
     - targetCorrespondingSourceObject: {fileID: 6425209683498024757, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
@@ -9711,10 +8768,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 1789629850}
-    - targetCorrespondingSourceObject: {fileID: -7309534231323748189, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1789629849}
     - targetCorrespondingSourceObject: {fileID: -7309534231323748189, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
@@ -9734,10 +8787,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -5255815213361616737, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1777075407}
-    - targetCorrespondingSourceObject: {fileID: -5255815213361616737, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 1777075406}
     - targetCorrespondingSourceObject: {fileID: -5255815213361616737, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
@@ -9751,10 +8800,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 580780037}
-    - targetCorrespondingSourceObject: {fileID: 1793025047325182975, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 580780036}
     - targetCorrespondingSourceObject: {fileID: 1793025047325182975, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
@@ -9774,10 +8819,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7898018699107440266, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 701973270}
-    - targetCorrespondingSourceObject: {fileID: 7898018699107440266, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 701973269}
     - targetCorrespondingSourceObject: {fileID: 7898018699107440266, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
@@ -9791,10 +8832,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 172040391}
-    - targetCorrespondingSourceObject: {fileID: -323930414578289979, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 172040390}
     - targetCorrespondingSourceObject: {fileID: -323930414578289979, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
@@ -9814,10 +8851,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4063862594971306606, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1439943994}
-    - targetCorrespondingSourceObject: {fileID: 4063862594971306606, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 1439943993}
     - targetCorrespondingSourceObject: {fileID: 4063862594971306606, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
@@ -9831,10 +8864,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 738523320}
-    - targetCorrespondingSourceObject: {fileID: 4294219014450103932, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 738523319}
     - targetCorrespondingSourceObject: {fileID: 4294219014450103932, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
@@ -9854,10 +8883,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 68854565607969759, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1187819318}
-    - targetCorrespondingSourceObject: {fileID: 68854565607969759, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 1187819317}
     - targetCorrespondingSourceObject: {fileID: 68854565607969759, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
@@ -9871,10 +8896,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 832424484}
-    - targetCorrespondingSourceObject: {fileID: 5907330949549081638, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 832424483}
     - targetCorrespondingSourceObject: {fileID: 5907330949549081638, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
@@ -9894,10 +8915,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -9049729163031235774, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 169764372}
-    - targetCorrespondingSourceObject: {fileID: -9049729163031235774, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 169764371}
     - targetCorrespondingSourceObject: {fileID: -9049729163031235774, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
@@ -9911,10 +8928,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 923510083}
-    - targetCorrespondingSourceObject: {fileID: 55930354952946283, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 923510082}
     - targetCorrespondingSourceObject: {fileID: 55930354952946283, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
@@ -9934,10 +8947,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -4980035141911112986, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 877166044}
-    - targetCorrespondingSourceObject: {fileID: -4980035141911112986, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 877166043}
     - targetCorrespondingSourceObject: {fileID: -4980035141911112986, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
@@ -9951,10 +8960,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 240561615}
-    - targetCorrespondingSourceObject: {fileID: -3019957046811160585, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 240561614}
     - targetCorrespondingSourceObject: {fileID: -3019957046811160585, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
@@ -9974,10 +8979,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -2136083701232247147, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 348466609}
-    - targetCorrespondingSourceObject: {fileID: -2136083701232247147, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 348466608}
     - targetCorrespondingSourceObject: {fileID: -2136083701232247147, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
@@ -9991,10 +8992,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 1031259889}
-    - targetCorrespondingSourceObject: {fileID: -8984014097380480859, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1031259888}
     - targetCorrespondingSourceObject: {fileID: -8984014097380480859, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
@@ -10014,10 +9011,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -7725252140281887047, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1917394356}
-    - targetCorrespondingSourceObject: {fileID: -7725252140281887047, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 1917394355}
     - targetCorrespondingSourceObject: {fileID: -7725252140281887047, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
@@ -10034,10 +9027,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7926371753994417970, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: 223538037}
-    - targetCorrespondingSourceObject: {fileID: 7926371753994417970, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
       addedObject: {fileID: 223538036}
     - targetCorrespondingSourceObject: {fileID: 7926371753994417970, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
@@ -10051,10 +9040,6 @@ PrefabInstance:
         type: 3}
       insertIndex: -1
       addedObject: {fileID: 271005586}
-    - targetCorrespondingSourceObject: {fileID: 5171931797993228258, guid: 64096153ddd93ab47b469cfe0db0268f,
-        type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 271005585}
     - targetCorrespondingSourceObject: {fileID: 5171931797993228258, guid: 64096153ddd93ab47b469cfe0db0268f,
         type: 3}
       insertIndex: -1
@@ -10086,20 +9071,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 1426127254}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1912493524
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1912493520}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: af2093ee-8764-43ad-8df3-6cf2da4a16d1
 --- !u!114 &1912493525
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10112,7 +9083,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 630d1f72-074f-4f2f-94bb-84c4e7668f0f
   ai: {fileID: 1912493527}
   targetRenderer: {fileID: 1912493522}
@@ -10235,20 +9206,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.0010311779, y: 0.01261101, z: 0.0011839088}
   m_Center: {x: -0.005663844, y: 0.00000011964289, z: -0.03767702}
---- !u!114 &1917394356
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1917394349}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 3801f257-8636-438c-93b4-a5a9fa4c8204
 --- !u!114 &1917394357
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10261,7 +9218,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 5e0d9cf2-0f6a-431f-bc05-66dffb31f681
   ai: {fileID: 0}
   targetRenderer: {fileID: 0}
@@ -10755,20 +9712,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.030148437, y: 0.06334921, z: 0.0423564}
   m_Center: {x: -0.007744429, y: -0.02585198, z: -0.1834932}
---- !u!114 &2046258426
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2046258419}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 20cf088b-64ab-41be-91a1-f42fb334192f
 --- !u!114 &2046258427
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10781,7 +9724,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: 14580b47-5759-4d3d-9e82-09cf4de81b5b
   ai: {fileID: 2046258424}
   targetRenderer: {fileID: 2046258421}
@@ -10800,20 +9743,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 605955113}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2055607407
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2055607403}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: a5c47e54-c6a8-4bee-b7e3-273e9f1ae646
 --- !u!114 &2055607408
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10826,7 +9755,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: ec642ed4-d9eb-4810-8c43-a1a2f7b85b3e
   ai: {fileID: 2055607410}
   targetRenderer: {fileID: 2055607405}
@@ -10906,20 +9835,6 @@ MeshRenderer:
     type: 3}
   m_PrefabInstance: {fileID: 605955113}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2144113136
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2144113132}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53c32602d8b047343bbcd3e6645cf257, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: VRT.Pilots.Common::VRT.Pilots.Common.NetworkIdBehaviour
-  noAutoCreateNetworkId: 0
-  NetworkId: 7a168c6b-71e7-495e-9a1b-4eba3a571ff4
 --- !u!114 &2144113137
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10932,7 +9847,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2e7c00efd7e4b734ab89c387974925e9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VRT.Pilots.Common.NetworkedAIObjectSync
-  noAutoCreateNetworkId: 0
+  noAutoCreateNetworkId: 1
   NetworkId: c587357e-d896-426c-932c-13cfbc006bbb
   ai: {fileID: 2144113139}
   targetRenderer: {fileID: 2144113134}
