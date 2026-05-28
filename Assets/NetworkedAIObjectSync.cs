@@ -26,6 +26,10 @@ namespace VRT.Pilots.Common
 
         [Header("Sync")]
         public float updateFrequency = 20f;
+        // When false, this component will NOT send or apply localScale changes over the network.
+        // Use for objects (like posters) whose localScale is parent-dependent and therefore
+        // not meaningful across machines that may have different parent hierarchies/scales.
+        public bool syncScale = true;
         public bool debug = false;
 
         float _lastSendTime;
@@ -139,7 +143,8 @@ namespace VRT.Pilots.Common
 
             transform.position = msg.Position;
             transform.rotation = msg.Rotation;
-            transform.localScale = msg.Scale;
+            if (syncScale)
+                transform.localScale = msg.Scale;
 
             if (msg.HasColor)
                 ApplyColor(msg.Color);
@@ -165,7 +170,7 @@ namespace VRT.Pilots.Common
             if (Quaternion.Angle(transform.rotation, _lastRotation) > 0.1f)
                 return true;
 
-            if (Vector3.Distance(transform.localScale, _lastScale) > 0.001f)
+            if (syncScale && Vector3.Distance(transform.localScale, _lastScale) > 0.001f)
                 return true;
 
             bool hasColor = TryGetColor(out Color c);

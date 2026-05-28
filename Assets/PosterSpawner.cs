@@ -144,6 +144,11 @@ public class PosterSpawner : MonoBehaviour
         var store = FindFirstObjectByType<SceneStateStore>();
         objectSync.sceneStateStore = store;
 
+        // Posters live under walls that may have very different lossyScale on different
+        // machines, so localScale is NOT portable. Width/height in meters are the source
+        // of truth and are sent via NetworkedAIAssetSync.SendPosterCreated instead.
+        objectSync.syncScale = false;
+
         if (string.IsNullOrEmpty(objectSync.NetworkId))
             objectSync.NetworkId = persist.id;
 

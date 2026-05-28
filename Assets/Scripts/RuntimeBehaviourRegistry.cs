@@ -194,6 +194,49 @@ public class RuntimeBehaviourRegistry : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Recompile-and-attach all saved behaviours for a single target, reading
+    /// the persisted .cs files from disk. Use this for objects (e.g. generated
+    /// models) that spawn AFTER the initial ReattachNextFrame pass has run.
+    /// Never calls GPT. Returns the number of behaviours attached.
+    /// </summary>
+    public int ReattachSavedBehavioursFor(GameObject go, string targetName)
+    {
+        if (go == null) return 0;
+
+        var reg = LoadRegistry();
+        int attached = 0;
+
+        foreach (var rec in reg.items)
+        {
+            if (rec.targetName != targetName) continue;
+
+            string fullPath = Path.Combine(ScriptsDir, rec.scriptFileName);
+            if (!File.Exists(fullPath))
+            {
+                Debug.LogWarning($"[Registry] Missing script file: {fullPath}");
+                continue;
+            }
+
+            string code = File.ReadAllText(fullPath, Encoding.UTF8);
+
+            Type t = CompileType(code, rec.className, out string errors);
+            if (t == null)
+            {
+                Debug.LogError($"[Registry] Re-compile failed for '{rec.className}':\n{errors}");
+                continue;
+            }
+
+            AttachType(go, t);
+            attached++;
+
+            if (logResults)
+                Debug.Log($"[Registry] Re-attached '{rec.className}' to '{targetName}' (from disk, no GPT)");
+        }
+
+        return attached;
+    }
+
     Type CompileType(string source, string className, out string errors)
     {
         errors = "";

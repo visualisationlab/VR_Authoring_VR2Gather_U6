@@ -233,5 +233,9 @@ public class SceneStateStore : MonoBehaviour
         netSync.ai = ai;
         netSync.targetRenderer = r;
         netSync.sceneStateStore = this;
+        // Poster localScale depends on parent lossyScale, which can differ across
+        // machines. Width/height meters are the persistent source of truth, so
+        // do NOT network-sync localScale for posters.
+        netSync.syncScale = false;
     }
 }

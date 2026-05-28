@@ -127,6 +127,8 @@ namespace VRT.Pilots.Common
                 net.ai = poster.GetComponent<AIControllable>();
                 net.targetRenderer = poster.GetComponent<Renderer>();
                 net.sceneStateStore = sceneStateStore;
+                // Poster localScale is parent-dependent — do not sync it.
+                net.syncScale = false;
             }
             if (string.IsNullOrEmpty(net.NetworkId))
                 net.NetworkId = string.IsNullOrEmpty(poster.id) ? System.Guid.NewGuid().ToString() : poster.id;
@@ -302,6 +304,9 @@ namespace VRT.Pilots.Common
             sync.ai = ai;
             sync.targetRenderer = ai.targetRenderer;
             sync.sceneStateStore = sceneStateStore;
+            // See PosterSpawner: poster localScale is parent-dependent and not portable
+            // across machines. Width/height are conveyed via AIPosterCreateMessage instead.
+            sync.syncScale = false;
 
             if (sceneStateStore != null)
                 sceneStateStore.RequestSave();

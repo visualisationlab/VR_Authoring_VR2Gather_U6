@@ -554,7 +554,14 @@ public class AICodeCommandHandler : MonoBehaviour
                 continue;
 
             Type type = component.GetType();
-            if (type.Name != "NetworkIdBehaviour")
+
+            // Match any component that IS or DERIVES FROM NetworkIdBehaviour,
+            // instead of requiring the leaf type name to equal "NetworkIdBehaviour".
+            // Generated/runtime objects carry NetworkedAIObjectSync : NetworkIdBehaviour
+            // (and posters etc. do too), so an exact-name check silently misses them,
+            // GetNetworkIdFromTarget returns empty, and TrySendRuntimeCodeSync bails
+            // without ever broadcasting the behaviour to other clients.
+            if (!IsOrDerivesFrom(type, "NetworkIdBehaviour"))
                 continue;
 
             var field = type.GetField(
@@ -582,6 +589,19 @@ public class AICodeCommandHandler : MonoBehaviour
 
         Debug.LogWarning("[AICodeCommandHandler] Target has no NetworkIdBehaviour: " + target.name);
         return string.Empty;
+    }
+
+    /// <summary>
+    /// True if <paramref name="t"/> is, or inherits from, a type whose simple
+    /// name is <paramref name="baseTypeName"/>. Walks the base-type chain so
+    /// subclasses (e.g. NetworkedAIObjectSync : NetworkIdBehaviour) are matched.
+    /// </summary>
+    static bool IsOrDerivesFrom(Type t, string baseTypeName)
+    {
+        for (Type cur = t; cur != null; cur = cur.BaseType)
+            if (cur.Name == baseTypeName)
+                return true;
+        return false;
     }
 
     static Type FindTypeInLoadedAssemblies(string typeName)

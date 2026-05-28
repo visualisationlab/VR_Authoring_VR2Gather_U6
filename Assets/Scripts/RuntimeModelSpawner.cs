@@ -514,7 +514,7 @@ public class RuntimeModelSpawner : MonoBehaviour
 
             // ✅ Reattach AI-generated behaviour code if one was saved for this model.
             // Wait one extra frame so the GameObject is fully initialised before
-            // AICodeCommandHandler tries to compile and attach the script.
+            // the registry recompiles the persisted .cs and attaches it (no GPT).
             if (respawnedGo != null)
             {
                 EnsureNetworkIdentity(respawnedGo, Sanitize(item.name));
@@ -532,14 +532,23 @@ public class RuntimeModelSpawner : MonoBehaviour
     IEnumerator ReattachCodeNextFrame(GameObject target, string behaviourPrompt)
     {
         yield return null; // one frame for full scene init
-        if (AICodeCommandHandler.Instance != null)
+
+        // Reattach the COMPILED script saved on disk — never re-prompt GPT.
+        // The behaviourPrompt is no longer used for reattach; the registry
+        // recompiles the persisted .cs that was generated the first time.
+        if (RuntimeBehaviourRegistry.Instance != null)
         {
-            Debug.Log($"[RuntimeModelSpawner] Reattaching behaviour to '{target.name}': {behaviourPrompt}");
-            AICodeCommandHandler.Instance.HandleCommand(behaviourPrompt, target);
+            int n = RuntimeBehaviourRegistry.Instance
+                        .ReattachSavedBehavioursFor(target, target.name);
+
+            if (n > 0)
+                Debug.Log($"[RuntimeModelSpawner] Reattached {n} saved behaviour(s) to '{target.name}' from disk (no GPT).");
+            else
+                Debug.Log($"[RuntimeModelSpawner] No saved behaviour on disk for '{target.name}'.");
         }
         else
         {
-            Debug.LogWarning($"[RuntimeModelSpawner] AICodeCommandHandler not found — cannot reattach behaviour for '{target.name}'");
+            Debug.LogWarning($"[RuntimeModelSpawner] RuntimeBehaviourRegistry not found — cannot reattach behaviour for '{target.name}'");
         }
     }
 
