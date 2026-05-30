@@ -313,7 +313,7 @@ public class AICodeCommandHandler : MonoBehaviour
             .Replace("{SCENE_CONTEXT}", sceneCtx);
 
         // Up to 2 attempts: first normal, second with compile errors fed back to GPT
-        string lastCode         = null;
+        string lastCode = null;
         string lastCompileError = null;
 
         for (int attempt = 1; attempt <= 2; attempt++)
@@ -327,11 +327,11 @@ public class AICodeCommandHandler : MonoBehaviour
                   $"Fix ONLY the compile errors and return the corrected full script.";
 
             string payload = BuildPayload(systemPrompt, userMsg);
-            byte[] body    = Encoding.UTF8.GetBytes(payload);
+            byte[] body = Encoding.UTF8.GetBytes(payload);
 
             using (var www = new UnityWebRequest(kApiUrl, "POST"))
             {
-                www.uploadHandler   = new UploadHandlerRaw(body);
+                www.uploadHandler = new UploadHandlerRaw(body);
                 www.downloadHandler = new DownloadHandlerBuffer();
                 www.SetRequestHeader("Content-Type", "application/json");
                 www.SetRequestHeader("Authorization", "Bearer " + openAiApiKey);
@@ -402,10 +402,10 @@ public class AICodeCommandHandler : MonoBehaviour
                         {
                             GameObject particleGO = FindParticleChildOnTarget(target);
                             ParticleEffectManager.Instance.SaveEffect(
-                                effectId:        effectId,
-                                targetName:      target.name,
+                                effectId: effectId,
+                                targetName: target.name,
                                 behaviourPrompt: userCommand,
-                                spawnedGO:       particleGO ?? target
+                                spawnedGO: particleGO ?? target
                             );
                         }
                         else
@@ -417,7 +417,7 @@ public class AICodeCommandHandler : MonoBehaviour
                 }
 
                 // Compile failed — store errors for retry
-                lastCode         = code;
+                lastCode = code;
                 lastCompileError = compileError ?? "Unknown compile error.";
                 Log($"Compile failed (attempt {attempt}): {lastCompileError}");
 
@@ -646,20 +646,20 @@ public class AICodeCommandHandler : MonoBehaviour
         string lower = prompt.ToLowerInvariant();
 
         return lower.Contains("particle") ||
-               lower.Contains("fire")     ||
-               lower.Contains("flame")    ||
-               lower.Contains("smoke")    ||
-               lower.Contains("spark")    ||
-               lower.Contains("explosion")||
+               lower.Contains("fire") ||
+               lower.Contains("flame") ||
+               lower.Contains("smoke") ||
+               lower.Contains("spark") ||
+               lower.Contains("explosion") ||
                lower.Contains("fountain") ||
-               lower.Contains("water")    ||
-               lower.Contains("rain")     ||
-               lower.Contains("snow")     ||
-               lower.Contains("magic")    ||
-               lower.Contains("glow")     ||
-               lower.Contains("trail")    ||
-               lower.Contains("dust")     ||
-               lower.Contains("fog")      ||
+               lower.Contains("water") ||
+               lower.Contains("rain") ||
+               lower.Contains("snow") ||
+               lower.Contains("magic") ||
+               lower.Contains("glow") ||
+               lower.Contains("trail") ||
+               lower.Contains("dust") ||
+               lower.Contains("fog") ||
                lower.Contains("mist");
     }
 
@@ -718,11 +718,11 @@ public class AICodeCommandHandler : MonoBehaviour
             if (ch == '\\' && idx < json.Length)
             {
                 char esc = json[idx++];
-                if      (esc == '"')  sb.Append('"');
+                if (esc == '"') sb.Append('"');
                 else if (esc == '\\') sb.Append('\\');
-                else if (esc == 'n')  sb.Append('\n');
-                else if (esc == 'r')  sb.Append('\r');
-                else if (esc == 't')  sb.Append('\t');
+                else if (esc == 'n') sb.Append('\n');
+                else if (esc == 'r') sb.Append('\r');
+                else if (esc == 't') sb.Append('\t');
                 else if (esc == 'u' && idx + 3 < json.Length)
                 {
                     string hex = json.Substring(idx, 4);
