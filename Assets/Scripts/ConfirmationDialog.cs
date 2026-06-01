@@ -7,9 +7,13 @@ using UnityEngine.Networking;
 using VRT.Orchestrator;
 
 /// <summary>
-/// From VoiceManager call:
+/// From VoiceManager / VoiceCaptureAndSend call:
 ///   ConfirmationDialog.Instance.ShowTranscript(transcript)   ← live text while LLM thinks
 ///   ConfirmationDialog.Instance.Show(sessionId, msg, cb)     ← show YES/NO dialog
+///
+/// Master-only behavior:
+///   - The whole dialog GameObject is visible only for the VR2Gather master/session creator.
+///   - Joined users do not see the message, panel, Yes button, No button, or progress text from this dialog.
 /// </summary>
 public class ConfirmationDialog : MonoBehaviour
 {
@@ -31,19 +35,19 @@ public class ConfirmationDialog : MonoBehaviour
     [Header("Server")]
     public string serverUrl = "http://localhost:8000";
 
-    private string _pendingSessionId;
-    private Action<string> _onExecute;
-    private bool _awaitingAnswer = false;
-
     [Header("Idle State")]
     public string idleMessage = "Press A and speak a command...";
 
     [Header("Master Only UI")]
-    [Tooltip("When true, this confirmation/progress dialog is visible only for the VR2Gather master/session creator.")]
+    [Tooltip("When true, the whole confirmation dialog is visible only for the VR2Gather master/session creator.")]
     public bool showDialogOnlyForMaster = true;
 
     [Tooltip("Keep dialog visible in editor/solo mode when VR2Gather Comm is not available yet.")]
     public bool showDialogIfCommUnavailable = true;
+
+    private string _pendingSessionId;
+    private Action<string> _onExecute;
+    private bool _awaitingAnswer = false;
 
     private bool IsMasterUser()
     {
@@ -56,10 +60,28 @@ public class ConfirmationDialog : MonoBehaviour
         return VRTOrchestratorSingleton.Comm.UserIsMaster;
     }
 
-    private void ApplyDialogVisibility(bool shouldBeVisible)
+    /// <summary>
+    /// Hide/show the entire dialog root, not only the panel.
+    /// This hides message, background, Yes/No buttons, and DialogFollowAgent together.
+    /// </summary>
+    private void SetWholeDialogVisible(bool visible)
+    {
+        bool finalVisible = IsMasterUser() && visible;
+
+        // Hide the whole object that this script is attached to.
+        // This is stronger than only hiding dialogPanel.
+        if (gameObject.activeSelf != finalVisible)
+            gameObject.SetActive(finalVisible);
+    }
+
+    /// <summary>
+    /// Hide/show only the UI panel while keeping this component alive.
+    /// Use this only for master user states.
+    /// </summary>
+    private void SetPanelVisible(bool visible)
     {
         if (dialogPanel != null)
-            dialogPanel.SetActive(IsMasterUser() && shouldBeVisible);
+            dialogPanel.SetActive(IsMasterUser() && visible);
     }
 
     void Awake()
@@ -69,6 +91,7 @@ public class ConfirmationDialog : MonoBehaviour
             Destroy(gameObject);
             return;
         }
+
         Instance = this;
 
         Canvas canvas = GetComponent<Canvas>();
@@ -86,30 +109,66 @@ public class ConfirmationDialog : MonoBehaviour
             }
         }
 
-        ApplyDialogVisibility(true);
-        if (messageText != null) messageText.text = idleMessage;
+        if (messageText != null)
+            messageText.text = idleMessage;
+
         SetButtonsInteractable(false);
 
-        if (yesButton != null) yesButton.onClick.AddListener(OnYes);
-        if (noButton != null) noButton.onClick.AddListener(OnNo);
+        if (yesButton != null)
+            yesButton.onClick.AddListener(OnYes);
+
+        if (noButton != null)
+            noButton.onClick.AddListener(OnNo);
+
+        // IMPORTANT:
+        // Joined users should not see any part of this dialog.
+        if (!IsMasterUser())
+        {
+            _awaitingAnswer = false;
+            SetPanelVisible(false);
+            gameObject.SetActive(false);
+            return;
+        }
+
+        SetPanelVisible(true);
     }
 
     void Start()
     {
+        // In some VR2Gather scenes, Comm may become available after Awake().
+        // Check once more at Start and hide the whole dialog if this client is not master.
+        if (!IsMasterUser())
+        {
+            _awaitingAnswer = false;
+            SetPanelVisible(false);
+            gameObject.SetActive(false);
+            return;
+        }
+
         Canvas canvas = GetComponent<Canvas>();
         if (canvas != null && canvas.worldCamera == null)
         {
             Camera cam = Camera.main;
-            if (cam != null) canvas.worldCamera = cam;
+            if (cam != null)
+                canvas.worldCamera = cam;
         }
     }
 
     public void ShowTranscript(string transcript)
     {
+        if (!IsMasterUser())
+        {
+            _awaitingAnswer = false;
+            gameObject.SetActive(false);
+            return;
+        }
+
+        SetWholeDialogVisible(true);
+
         if (messageText != null)
             messageText.text = $"You said:\n\"{transcript}\"\n\nProcessing...";
 
-        ApplyDialogVisibility(true);
+        SetPanelVisible(true);
         SetButtonsInteractable(false);
     }
 
@@ -118,10 +177,13 @@ public class ConfirmationDialog : MonoBehaviour
         if (!IsMasterUser())
         {
             _awaitingAnswer = false;
-            ApplyDialogVisibility(false);
-            SetButtonsInteractable(false);
+            _pendingSessionId = null;
+            _onExecute = null;
+            gameObject.SetActive(false);
             return;
         }
+
+        SetWholeDialogVisible(true);
 
         _pendingSessionId = sessionId;
         _onExecute = onExecute;
@@ -130,11 +192,11 @@ public class ConfirmationDialog : MonoBehaviour
         if (messageText != null)
             messageText.text = message;
 
-        ApplyDialogVisibility(true);
+        SetPanelVisible(true);
         SetButtonsInteractable(true);
     }
 
-    public bool IsPanelVisible => _awaitingAnswer;
+    public bool IsPanelVisible => IsMasterUser() && _awaitingAnswer;
 
     public void Hide()
     {
@@ -142,42 +204,26 @@ public class ConfirmationDialog : MonoBehaviour
 
         if (!IsMasterUser())
         {
-            ApplyDialogVisibility(false);
-            SetButtonsInteractable(false);
+            _pendingSessionId = null;
+            _onExecute = null;
+            gameObject.SetActive(false);
             return;
         }
 
-        if (messageText != null) messageText.text = idleMessage;
-        ApplyDialogVisibility(true);
+        if (messageText != null)
+            messageText.text = idleMessage;
+
+        SetPanelVisible(true);
         SetButtonsInteractable(false);
     }
 
-    /*public void OnYes()
-    {
-        if (!_awaitingAnswer) return;
-
-        _awaitingAnswer = false;
-        SetButtonsInteractable(false);
-
-        if (messageText != null)
-            messageText.text = "Executing...";
-
-        if (!string.IsNullOrEmpty(_pendingSessionId))
-        {
-            StartCoroutine(PostExecute(_pendingSessionId));
-        }
-        else
-        {
-            if (messageText != null)
-                messageText.text = "Error: missing session id.";
-            Hide();
-        }
-    }*/
-
     public void OnYes()
     {
-        if (!IsMasterUser()) return;
-        if (!_awaitingAnswer) return;
+        if (!IsMasterUser())
+            return;
+
+        if (!_awaitingAnswer)
+            return;
 
         _awaitingAnswer = false;
         SetButtonsInteractable(false);
@@ -185,7 +231,7 @@ public class ConfirmationDialog : MonoBehaviour
         if (messageText != null)
             messageText.text = "Executing...";
 
-        // ✅ CRITICAL FIX
+        // Keeps your existing confirmation callback behavior.
         _onExecute?.Invoke("confirmed");
 
         if (!string.IsNullOrEmpty(_pendingSessionId))
@@ -196,14 +242,18 @@ public class ConfirmationDialog : MonoBehaviour
         {
             if (messageText != null)
                 messageText.text = "Error: missing session id.";
+
             Hide();
         }
     }
 
     public void OnNo()
     {
-        if (!IsMasterUser()) return;
-        if (!_awaitingAnswer) return;
+        if (!IsMasterUser())
+            return;
+
+        if (!_awaitingAnswer)
+            return;
 
         _awaitingAnswer = false;
 
@@ -274,7 +324,10 @@ public class ConfirmationDialog : MonoBehaviour
 
     private void SetButtonsInteractable(bool state)
     {
-        if (yesButton != null) yesButton.interactable = state;
-        if (noButton != null) noButton.interactable = state;
+        if (yesButton != null)
+            yesButton.interactable = state;
+
+        if (noButton != null)
+            noButton.interactable = state;
     }
 }
