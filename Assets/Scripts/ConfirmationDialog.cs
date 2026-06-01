@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Networking;
+using VRT.Orchestrator;
 
 /// <summary>
 /// From VoiceManager call:
@@ -37,6 +38,30 @@ public class ConfirmationDialog : MonoBehaviour
     [Header("Idle State")]
     public string idleMessage = "Press A and speak a command...";
 
+    [Header("Master Only UI")]
+    [Tooltip("When true, this confirmation/progress dialog is visible only for the VR2Gather master/session creator.")]
+    public bool showDialogOnlyForMaster = true;
+
+    [Tooltip("Keep dialog visible in editor/solo mode when VR2Gather Comm is not available yet.")]
+    public bool showDialogIfCommUnavailable = true;
+
+    private bool IsMasterUser()
+    {
+        if (!showDialogOnlyForMaster)
+            return true;
+
+        if (VRTOrchestratorSingleton.Comm == null)
+            return showDialogIfCommUnavailable;
+
+        return VRTOrchestratorSingleton.Comm.UserIsMaster;
+    }
+
+    private void ApplyDialogVisibility(bool shouldBeVisible)
+    {
+        if (dialogPanel != null)
+            dialogPanel.SetActive(IsMasterUser() && shouldBeVisible);
+    }
+
     void Awake()
     {
         if (Instance != null && Instance != this)
@@ -61,7 +86,7 @@ public class ConfirmationDialog : MonoBehaviour
             }
         }
 
-        if (dialogPanel != null) dialogPanel.SetActive(true);
+        ApplyDialogVisibility(true);
         if (messageText != null) messageText.text = idleMessage;
         SetButtonsInteractable(false);
 
@@ -84,12 +109,20 @@ public class ConfirmationDialog : MonoBehaviour
         if (messageText != null)
             messageText.text = $"You said:\n\"{transcript}\"\n\nProcessing...";
 
-        if (dialogPanel != null) dialogPanel.SetActive(true);
+        ApplyDialogVisibility(true);
         SetButtonsInteractable(false);
     }
 
     public void Show(string sessionId, string message, Action<string> onExecute)
     {
+        if (!IsMasterUser())
+        {
+            _awaitingAnswer = false;
+            ApplyDialogVisibility(false);
+            SetButtonsInteractable(false);
+            return;
+        }
+
         _pendingSessionId = sessionId;
         _onExecute = onExecute;
         _awaitingAnswer = true;
@@ -97,9 +130,7 @@ public class ConfirmationDialog : MonoBehaviour
         if (messageText != null)
             messageText.text = message;
 
-        if (dialogPanel != null)
-            dialogPanel.SetActive(true);
-
+        ApplyDialogVisibility(true);
         SetButtonsInteractable(true);
     }
 
@@ -108,7 +139,16 @@ public class ConfirmationDialog : MonoBehaviour
     public void Hide()
     {
         _awaitingAnswer = false;
+
+        if (!IsMasterUser())
+        {
+            ApplyDialogVisibility(false);
+            SetButtonsInteractable(false);
+            return;
+        }
+
         if (messageText != null) messageText.text = idleMessage;
+        ApplyDialogVisibility(true);
         SetButtonsInteractable(false);
     }
 
@@ -136,6 +176,7 @@ public class ConfirmationDialog : MonoBehaviour
 
     public void OnYes()
     {
+        if (!IsMasterUser()) return;
         if (!_awaitingAnswer) return;
 
         _awaitingAnswer = false;
@@ -161,6 +202,7 @@ public class ConfirmationDialog : MonoBehaviour
 
     public void OnNo()
     {
+        if (!IsMasterUser()) return;
         if (!_awaitingAnswer) return;
 
         _awaitingAnswer = false;

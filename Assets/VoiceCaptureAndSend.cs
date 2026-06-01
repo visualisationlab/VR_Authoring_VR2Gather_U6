@@ -19,6 +19,7 @@ using System.IO;
 using System.Text;
 using TMPro;
 using UnityEngine.XR;
+using VRT.Orchestrator;
 
 public class VoiceCaptureAndSend : MonoBehaviour
 {
@@ -62,6 +63,13 @@ public class VoiceCaptureAndSend : MonoBehaviour
     [Header("UI Settings")]
     public float completedJobLingerSeconds = 7f;
     public float tickUiInterval            = 0.25f;
+
+    [Header("Master Only UI")]
+    [Tooltip("When true, AI status/progress UI is shown only for the VR2Gather master/session creator.")]
+    public bool showFeedbackOnlyForMaster = true;
+
+    [Tooltip("Keep UI visible in editor/solo mode when VR2Gather Comm is not available yet.")]
+    public bool showFeedbackIfCommUnavailable = true;
 
     // ─────────────────────────────────────────────────────────────────────────
     // Private state
@@ -187,17 +195,49 @@ public class VoiceCaptureAndSend : MonoBehaviour
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Master-only UI visibility
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private bool IsMasterUser()
+    {
+        if (!showFeedbackOnlyForMaster)
+            return true;
+
+        if (VRTOrchestratorSingleton.Comm == null)
+            return showFeedbackIfCommUnavailable;
+
+        return VRTOrchestratorSingleton.Comm.UserIsMaster;
+    }
+
+    private void ApplyFeedbackUIVisibility()
+    {
+        bool visible = IsMasterUser();
+
+        if (aiIntentText != null)
+            aiIntentText.gameObject.SetActive(visible);
+
+        if (transcriptText != null)
+            transcriptText.gameObject.SetActive(visible);
+
+        if (recordingStatusText != null)
+            recordingStatusText.gameObject.SetActive(visible);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // UI helpers
     // ─────────────────────────────────────────────────────────────────────────
 
     private void SetHeaderLine(string msg)
     {
+        if (!IsMasterUser()) return;
+
         _headerLine = msg;
         RefreshJobsUI();
     }
 
     private void RefreshJobsUI()
     {
+        if (!IsMasterUser()) return;
         if (recordingStatusText == null) return;
 
         float now = Time.realtimeSinceStartup;
@@ -411,6 +451,8 @@ public class VoiceCaptureAndSend : MonoBehaviour
         if (AICodeCommandHandler.Instance == null)
             Debug.LogWarning("[VoiceCaptureAndSend] AICodeCommandHandler not found in scene.");
 
+        ApplyFeedbackUIVisibility();
+
         SetHeaderLine("Ready. Press R to record / T to stop.");
         RefreshJobsUI();
 
@@ -421,6 +463,8 @@ public class VoiceCaptureAndSend : MonoBehaviour
 
     void Update()
     {
+        ApplyFeedbackUIVisibility();
+
         if (Input.GetKeyDown(startKey)) StartListening();
         if (Input.GetKeyDown(stopKey))  StopListening();
 
@@ -651,7 +695,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
                 yield break;
             }
 
-            if (transcriptText != null) transcriptText.text = gateResult.transcript;
+            if (IsMasterUser() && transcriptText != null) transcriptText.text = gateResult.transcript;
 
             // ── Confirmation required ─────────────────────────────────────
             if (gateResult.requires_confirmation)
@@ -780,7 +824,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
                     executedAnything   = true;
                     startedAnyAsyncJob = true;
 
-                    if (aiIntentText != null)
+                    if (IsMasterUser() && aiIntentText != null)
                         aiIntentText.text = $"Generating and placing: {genPrompt}";
 
                     if (stateStore != null) stateStore.RequestSave();
@@ -854,7 +898,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
                 Coroutine co = StartCoroutine(PollTextTo3D_Job(jobId, p, n, stage, style));
                 _modelPollRoutines[jobId] = co;
 
-                if (aiIntentText != null) aiIntentText.text = $"Generating 3D: {p}";
+                if (IsMasterUser() && aiIntentText != null) aiIntentText.text = $"Generating 3D: {p}";
                 return true;
             }
 
@@ -880,7 +924,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
                 int jobId = StartJob("poster", "PENDING", null);
                 StartCoroutine(GeneratePosterImageAndSpawn_Job(jobId, prompt, wallAnchor, w, h));
 
-                if (aiIntentText != null) aiIntentText.text = $"Poster: {prompt}";
+                if (IsMasterUser() && aiIntentText != null) aiIntentText.text = $"Poster: {prompt}";
                 return true;
             }
 
@@ -900,7 +944,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
                 int jobId = StartJob("texture", "PENDING", null);
                 StartCoroutine(GenerateTextureAndApply_Job(jobId, tPrompt, wallAnchor, tile));
 
-                if (aiIntentText != null) aiIntentText.text = $"Texture: {tPrompt}";
+                if (IsMasterUser() && aiIntentText != null) aiIntentText.text = $"Texture: {tPrompt}";
                 return true;
             }
 
@@ -956,7 +1000,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
                     if (stateStore != null)
                         stateStore.RequestSave();
 
-                    if (aiIntentText != null)
+                    if (IsMasterUser() && aiIntentText != null)
                         aiIntentText.text = $"Code: {behaviourPrompt}";
 
                     return true;
@@ -964,7 +1008,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
 
             // ── 5. no_action ─────────────────────────────────────────────
             case "no_action":
-                if (aiIntentText != null) aiIntentText.text = "No action.";
+                if (IsMasterUser() && aiIntentText != null) aiIntentText.text = "No action.";
                 return false;
 
             default:
