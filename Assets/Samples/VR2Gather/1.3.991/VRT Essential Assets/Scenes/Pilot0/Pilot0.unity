@@ -206,6 +206,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 54727154}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1 &65518954
 GameObject:
@@ -475,6 +476,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 150668139}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &150668143
 MonoBehaviour:
@@ -622,6 +624,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 169764367}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1 &172040383 stripped
 GameObject:
@@ -708,6 +711,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 172040385}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1 &172947388 stripped
 GameObject:
@@ -739,6 +743,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 172947390}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &172947394
 MonoBehaviour:
@@ -880,6 +885,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 187337478}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1 &223538030 stripped
 GameObject:
@@ -960,6 +966,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 0}
   sceneStateStore: {fileID: 0}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1 &225680292
 GameObject:
@@ -1086,6 +1093,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 0}
   sceneStateStore: {fileID: 0}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1 &271005578 stripped
 GameObject:
@@ -1166,6 +1174,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 0}
   sceneStateStore: {fileID: 0}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1 &272634741 stripped
 GameObject:
@@ -1197,6 +1206,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 272634743}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &272634747
 MonoBehaviour:
@@ -1283,6 +1293,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 274302505}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &274302509
 MonoBehaviour:
@@ -1369,6 +1380,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 278992590}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &278992594
 MonoBehaviour:
@@ -1497,6 +1509,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 284656705}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &284656709
 MonoBehaviour:
@@ -1847,6 +1860,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 0}
   sceneStateStore: {fileID: 0}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1 &352647342 stripped
 GameObject:
@@ -1878,6 +1892,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 352647344}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &352647348
 MonoBehaviour:
@@ -1964,6 +1979,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 374127332}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &374127336
 MonoBehaviour:
@@ -2156,6 +2172,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 498329533}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &498329537
 MonoBehaviour:
@@ -2212,6 +2229,85 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.047311403, y: 0.0015381675, z: 0.08910678}
   m_Center: {x: -0.057870723, y: -0.00115608, z: -0.0076725455}
+--- !u!1001 &548434522
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 674141223}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: aa4a6cecfe342da429719293269523d7,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 28.178345
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: aa4a6cecfe342da429719293269523d7,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.99118
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: aa4a6cecfe342da429719293269523d7,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 228.33832
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: aa4a6cecfe342da429719293269523d7,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: aa4a6cecfe342da429719293269523d7,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: aa4a6cecfe342da429719293269523d7,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: aa4a6cecfe342da429719293269523d7,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: aa4a6cecfe342da429719293269523d7,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: aa4a6cecfe342da429719293269523d7,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: aa4a6cecfe342da429719293269523d7,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: aa4a6cecfe342da429719293269523d7,
+        type: 3}
+      propertyPath: m_Name
+      value: Maps
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: aa4a6cecfe342da429719293269523d7,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: aa4a6cecfe342da429719293269523d7, type: 3}
+--- !u!4 &548434523 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: aa4a6cecfe342da429719293269523d7,
+    type: 3}
+  m_PrefabInstance: {fileID: 548434522}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &580780029 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1793025047325182975, guid: 64096153ddd93ab47b469cfe0db0268f,
@@ -2297,6 +2393,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 580780031}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1 &582803469
 GameObject:
@@ -2821,6 +2918,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 548434523}
   - {fileID: 878163046}
   - {fileID: 94444518}
   - {fileID: 461751321}
@@ -3022,6 +3120,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 701973265}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1001 &717731331
 PrefabInstance:
@@ -3266,6 +3365,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 738523314}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1001 &755515101
 PrefabInstance:
@@ -3371,6 +3471,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 801471913}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &801471917
 MonoBehaviour:
@@ -3457,6 +3558,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 805057849}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &805057853
 MonoBehaviour:
@@ -3598,6 +3700,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 832424478}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1 &835279809 stripped
 GameObject:
@@ -3629,6 +3732,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 835279811}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &835279815
 MonoBehaviour:
@@ -3777,6 +3881,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 868459535}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &868459539
 MonoBehaviour:
@@ -3918,6 +4023,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 877166039}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1001 &878163045
 PrefabInstance:
@@ -4076,6 +4182,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 882760260}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &882760264
 MonoBehaviour:
@@ -4217,6 +4324,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 886572585}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1 &890370684 stripped
 GameObject:
@@ -4248,6 +4356,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 890370686}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &890370690
 MonoBehaviour:
@@ -4466,6 +4575,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 923510077}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1 &1003475508 stripped
 GameObject:
@@ -4497,6 +4607,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1003475510}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &1003475514
 MonoBehaviour:
@@ -4638,6 +4749,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1025220146}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1 &1031259881 stripped
 GameObject:
@@ -4718,6 +4830,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 0}
   sceneStateStore: {fileID: 0}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1001 &1031903436
 PrefabInstance:
@@ -4781,6 +4894,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: infrastructuire
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 8df56e705035a924dbc3bd4c1e08a479,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -4855,6 +4973,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1035690229}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &1035690233
 MonoBehaviour:
@@ -4941,6 +5060,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1050969393}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &1050969397
 MonoBehaviour:
@@ -5104,6 +5224,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1069008515}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &1069008519
 MonoBehaviour:
@@ -5520,6 +5641,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1146849946}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &1146849950
 MonoBehaviour:
@@ -5606,6 +5728,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1170725999}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &1170726002
 MonoBehaviour:
@@ -5747,6 +5870,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1187819313}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1001 &1198636784
 PrefabInstance:
@@ -5852,6 +5976,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1218966535}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &1218966539
 MonoBehaviour:
@@ -5938,6 +6063,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1224032799}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &1224032803
 MonoBehaviour:
@@ -6214,6 +6340,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1241054824}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1001 &1256931706
 PrefabInstance:
@@ -6428,6 +6555,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1280911075}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &1280911079
 MonoBehaviour:
@@ -6514,6 +6642,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1356678343}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &1356678347
 MonoBehaviour:
@@ -6777,6 +6906,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1394688742}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &1394688746
 MonoBehaviour:
@@ -7017,6 +7147,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1436948560}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &1436948564
 MonoBehaviour:
@@ -7158,6 +7289,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1439943989}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1001 &1523248616
 PrefabInstance:
@@ -7293,6 +7425,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1554235662}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &1554235666
 MonoBehaviour:
@@ -7434,6 +7567,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1559155652}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1 &1605595623 stripped
 GameObject:
@@ -7465,6 +7599,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1605595625}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &1605595629
 MonoBehaviour:
@@ -7607,6 +7742,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1643153495}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &1643153499
 MonoBehaviour:
@@ -7785,6 +7921,8 @@ MonoBehaviour:
   defaultPosterHeightM: 1
   completedJobLingerSeconds: 7
   tickUiInterval: 0.25
+  showFeedbackOnlyForMaster: 1
+  showFeedbackIfCommUnavailable: 1
 --- !u!4 &1714661383
 Transform:
   m_ObjectHideFlags: 0
@@ -8070,6 +8208,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1777075402}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1 &1789629842 stripped
 GameObject:
@@ -8156,6 +8295,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1789629844}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1 &1827011033
 GameObject:
@@ -9089,6 +9229,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 1912493522}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &1912493526
 MonoBehaviour:
@@ -9224,6 +9365,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 0}
   sceneStateStore: {fileID: 0}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1 &1938366413
 GameObject:
@@ -9482,6 +9624,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6485ce08202f9424495a4ed4c0fa670f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NetworkedAIBehaviourSync
+  debug: 1
 --- !u!1001 &1991832117
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9730,6 +9873,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 2046258421}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!1 &2055607403 stripped
 GameObject:
@@ -9761,6 +9905,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 2055607405}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &2055607409
 MonoBehaviour:
@@ -9853,6 +9998,7 @@ MonoBehaviour:
   targetRenderer: {fileID: 2144113134}
   sceneStateStore: {fileID: 225680293}
   updateFrequency: 20
+  syncScale: 1
   debug: 0
 --- !u!114 &2144113138
 MonoBehaviour:
@@ -9920,12 +10066,37 @@ PrefabInstance:
     - target: {fileID: 1813949618548957887, guid: 9908dcf284aef0e4a8ba245dc5f0f080,
         type: 3}
       propertyPath: m_LocalPosition.x
-      value: -64.66
+      value: -68.96
       objectReference: {fileID: 0}
     - target: {fileID: 1813949618548957887, guid: 9908dcf284aef0e4a8ba245dc5f0f080,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 159.3
+      value: 167.53
+      objectReference: {fileID: 0}
+    - target: {fileID: 1813949618548957887, guid: 9908dcf284aef0e4a8ba245dc5f0f080,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.99162537
+      objectReference: {fileID: 0}
+    - target: {fileID: 1813949618548957887, guid: 9908dcf284aef0e4a8ba245dc5f0f080,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1813949618548957887, guid: 9908dcf284aef0e4a8ba245dc5f0f080,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.129148
+      objectReference: {fileID: 0}
+    - target: {fileID: 1813949618548957887, guid: 9908dcf284aef0e4a8ba245dc5f0f080,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1813949618548957887, guid: 9908dcf284aef0e4a8ba245dc5f0f080,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: -14.841
       objectReference: {fileID: 0}
     - target: {fileID: 2108755284289232089, guid: 9908dcf284aef0e4a8ba245dc5f0f080,
         type: 3}

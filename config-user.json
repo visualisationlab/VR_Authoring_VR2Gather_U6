@@ -3,7 +3,7 @@
     "representation": 1,
     "representation_str": "SimpleAvatar",
     "webcamName": "",
-    "microphoneName": "Headset Microphone (Oculus Virtual Audio Device)",
+    "microphoneName": "Microphone Array (Intel® Smart Sound Technology for MIPI SoundWire® Audio)",
     "userRepresentationTCPUrl": "",
     "RepresentationPointcloudConfig": {
         "variant": 0,

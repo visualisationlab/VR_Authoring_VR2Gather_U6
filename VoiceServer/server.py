@@ -988,7 +988,121 @@ def _is_actionable(commands: list) -> bool:
     return any(cmd.get("action", "no_action") != "no_action" for cmd in commands)
 
 
+def _clean_short_text(value: Any, max_len: int = 60) -> str:
+    """Small helper for VR dialog labels: one line, readable, not too long."""
+    s = str(value or "").strip()
+    s = re.sub(r"\s+", " ", s)
+    if len(s) > max_len:
+        s = s[: max_len - 3].rstrip() + "..."
+    return s
+
+
+def _first_target(cmd: dict, fallback: str = "") -> str:
+    """Return the most useful target name for a dialog summary."""
+    if not isinstance(cmd, dict):
+        return fallback or ""
+
+    targets = cmd.get("targets")
+    if isinstance(targets, list) and targets:
+        return str(targets[0] or "").strip()
+
+    target = str(cmd.get("target") or "").strip()
+    if target:
+        return target
+
+    if fallback and fallback.lower() not in ("none", "null"):
+        return fallback
+
+    return ""
+
+
+def _quoted_target(target: str) -> str:
+    target = _clean_short_text(target, 80)
+    return f' on "{target}"' if target else ""
+
+
+def _colour_from_prompt(prompt: str) -> str:
+    p = (prompt or "").lower()
+    colours = [
+        "black", "white", "red", "green", "blue", "yellow", "orange", "purple",
+        "pink", "brown", "grey", "gray", "gold", "silver", "cyan", "magenta"
+    ]
+    for c in colours:
+        if re.search(rf"\b{re.escape(c)}\b", p):
+            return "grey" if c == "gray" else c
+    return ""
+
+
+def _build_command_summary(cmd: dict, gaze_target: str = "") -> str:
+    """
+    Builds the short confirmation text shown in Unity.
+    Examples:
+      Change color to black on "Cube"
+      Generate poster of football fans on "Wall_01"
+      Generate texture of bricks on "Building_01"
+    """
+    if not isinstance(cmd, dict):
+        return "Execute action"
+
+    action = (cmd.get("action") or "no_action").strip().lower()
+    target = _first_target(cmd, gaze_target)
+    target_suffix = _quoted_target(target)
+
+    if action == "create_poster":
+        subject = _clean_short_text(cmd.get("image_prompt") or "poster", 70)
+        return f"Generate poster of {subject}{target_suffix}"
+
+    if action == "set_wall_texture":
+        subject = _clean_short_text(cmd.get("texture_prompt") or "texture", 70)
+        return f"Generate texture of {subject}{target_suffix}"
+
+    if action == "generate_model":
+        subject = _clean_short_text(cmd.get("prompt") or cmd.get("name") or "3D model", 70)
+        return f"Generate 3D model of {subject}"
+
+    if action == "run_code":
+        behaviour = _clean_short_text(cmd.get("behaviour_prompt") or "run action", 120)
+        colour = _colour_from_prompt(behaviour)
+        if colour and re.search(r"\b(colou?r|turn|paint|material)\b", behaviour.lower()):
+            return f"Change color to {colour}{target_suffix}"
+
+        # Keep common generated-code actions readable without exposing the long implementation brief.
+        low = behaviour.lower()
+        if any(w in low for w in ["move", "position", "place", "put"]):
+            return f"Move/place{target_suffix}"
+        if any(w in low for w in ["scale", "resize", "size", "height", "width"]):
+            return f"Resize{target_suffix}"
+        if "rotate" in low or "rotation" in low:
+            return f"Rotate{target_suffix}"
+        if any(w in low for w in ["particle", "fire", "smoke", "water", "fountain", "sparks", "explosion"]):
+            return f"Create visual effect{target_suffix}"
+
+        # Fallback: compact behaviour prompt, but still one line.
+        return f"Action: {behaviour}"
+
+    if action == "no_action":
+        return "No action"
+
+    return f"Execute {action.replace('_', ' ')}{target_suffix}"
+
+
+def _build_dialog_summary(commands: list, gaze_target: str = "") -> str:
+    actionable = [c for c in (commands or []) if isinstance(c, dict) and c.get("action") != "no_action"]
+    if not actionable:
+        return "No action"
+
+    summaries = [_build_command_summary(c, gaze_target) for c in actionable]
+
+    # Usually there is one action. For multi-step commands, keep it compact.
+    if len(summaries) == 1:
+        return summaries[0]
+
+    joined = " + ".join(summaries)
+    return _clean_short_text(joined, 150)
+
+
 def _build_confirmation_message(commands: list, reasoning: str) -> str:
+    # Keep the old long message available for logs/backward compatibility.
     if reasoning:
         return reasoning
     actions = [cmd.get("action", "no_action") for cmd in commands]
@@ -1081,15 +1195,17 @@ async def transcribe(
     if _is_actionable(commands):
         session_id = str(_uuid.uuid4())
         confirmation_message = _build_confirmation_message(commands, reasoning)
+        dialog_summary = _build_dialog_summary(commands, gaze_target)
 
         pending_commands[session_id] = {
             "commands": commands,
             "transcript": transcript,
             "gaze_target": gaze_target,
             "created_at": time.time(),
+            "dialog_summary": dialog_summary,
         }
 
-        print(f"[Pending] session={session_id}  msg='{confirmation_message}'\n")
+        print(f"[Pending] session={session_id}  summary='{dialog_summary}'  msg='{confirmation_message}'\n")
 
         return JSONResponse(content={
             "transcript": transcript,
@@ -1097,6 +1213,7 @@ async def transcribe(
             "requires_confirmation": True,
             "session_id": session_id,
             "confirmation_message": confirmation_message,
+            "dialog_summary": dialog_summary,
             "commands": commands,
             "command": commands[0] if commands else {"action": "no_action"},
             "meta": meta,

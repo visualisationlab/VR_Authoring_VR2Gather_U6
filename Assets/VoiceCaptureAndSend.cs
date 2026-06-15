@@ -325,6 +325,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
         public bool      requires_confirmation;
         public string    session_id;
         public string    confirmation_message;
+        public string    dialog_summary;
         public Command   command;
         public Command[] commands;
     }
@@ -453,7 +454,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
 
         ApplyFeedbackUIVisibility();
 
-        SetHeaderLine("Ready. Press R to record / T to stop.");
+        SetHeaderLine("Ready. Hold A to record.");
         RefreshJobsUI();
 
         var devices = new List<InputDevice>();
@@ -484,32 +485,37 @@ public class VoiceCaptureAndSend : MonoBehaviour
 
         if (rightController.isValid)
         {
-            bool aPressed = false;
+            // Read ONLY the physical A button state
+            rightController.TryGetFeatureValue(CommonUsages.primaryButton, out bool btnDown);
 
-            // Quest/most XR controllers expose the A button as primaryButton.
-            // We keep this separated so it is easy to add a fallback button later.
-            if (rightController.TryGetFeatureValue(CommonUsages.primaryButton, out bool primaryPressed))
+            // Debug information
+            Debug.Log(
+                $"[VoiceCaptureAndSend] primaryButton={btnDown}  " +
+                $"lastAPressed={lastAPressed}  " +
+                $"isRecording={isRecording}"
+            );
+
+            // Start recording on button press
+            if (btnDown && !lastAPressed && !isRecording)
             {
-                aPressed = primaryPressed;
+                Debug.Log("[VoiceCaptureAndSend] A pressed -> START recording");
+                StartListening();
             }
 
-            if (aPressed && !lastAPressed)
+            // Stop recording on button release
+            if (!btnDown && lastAPressed && isRecording)
             {
-                Debug.Log("[VoiceCaptureAndSend] A button pressed");
-
-                if (!isRecording) StartListening();
-                else              StopListening();
+                Debug.Log("[VoiceCaptureAndSend] A released -> STOP recording");
+                StopListening();
             }
 
-            lastAPressed = aPressed;
+            lastAPressed = btnDown;
         }
         else
         {
-            // Reset edge detection while no controller is valid, otherwise a stale press state
-            // can block the next real A-button press after reconnection.
             lastAPressed = false;
         }
-
+        
         if ((_jobs.Count > 0 || _completedJobs.Count > 0) && Time.realtimeSinceStartup >= _nextTickTime)
         {
             _nextTickTime = Time.realtimeSinceStartup + tickUiInterval;
@@ -536,7 +542,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
 
         recordedClip = Microphone.Start(microphoneDevice, false, maxRecordLengthSeconds, sampleRate);
         isRecording = true;
-        SetHeaderLine("Recording... (press again to stop)");
+        SetHeaderLine("Recording... (release A to send)");
     }
 
     private Coroutine _screenshotLoopCoroutine = null;
@@ -709,9 +715,13 @@ public class VoiceCaptureAndSend : MonoBehaviour
 
                 if (confirmationDialog != null)
                 {
+                    string dialogText = !string.IsNullOrWhiteSpace(gateResult.dialog_summary)
+                        ? gateResult.dialog_summary
+                        : gateResult.confirmation_message;
+
                     confirmationDialog.Show(
                         gateResult.session_id,
-                        gateResult.confirmation_message,
+                        dialogText,
                         onExecute: _ => { confirmed = true; }
                     );
 

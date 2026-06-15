@@ -190,7 +190,7 @@ public class ConfirmationDialog : MonoBehaviour
         _awaitingAnswer = true;
 
         if (messageText != null)
-            messageText.text = message;
+            messageText.text = FormatDialogMessage(message);
 
         SetPanelVisible(true);
         SetButtonsInteractable(true);
@@ -215,6 +215,24 @@ public class ConfirmationDialog : MonoBehaviour
 
         SetPanelVisible(true);
         SetButtonsInteractable(false);
+    }
+
+
+    private string FormatDialogMessage(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+            return "Confirm action?";
+
+        string s = message.Replace("\r", " ").Replace("\n", " ").Trim();
+
+        while (s.Contains("  "))
+            s = s.Replace("  ", " ");
+
+        const int maxChars = 160;
+        if (s.Length > maxChars)
+            s = s.Substring(0, maxChars - 3).TrimEnd() + "...";
+
+        return s;
     }
 
     public void OnYes()
