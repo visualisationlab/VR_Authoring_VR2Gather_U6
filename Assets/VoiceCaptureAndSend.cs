@@ -83,6 +83,13 @@ public class VoiceCaptureAndSend : MonoBehaviour
 
     private string _capturedTargetNameAtStop = null;
 
+    // Clean dialog execution progress
+    private bool   _isExecutingCleanAction = false;
+    private float  _executionStartTime = 0f;
+    private string _currentActionLabel = "";
+    private bool   _showPercentForCurrentAction = false;   // Only true for 3D model generation
+    private int    _lastCleanProgressPercent = 0;
+
     // ─────────────────────────────────────────────────────────────────────────
     // Job tracker
     // ─────────────────────────────────────────────────────────────────────────
@@ -136,8 +143,21 @@ public class VoiceCaptureAndSend : MonoBehaviour
     private void UpdateJob(int id, string status, int progress = -1)
     {
         if (!_jobs.TryGetValue(id, out var j)) return;
+
         j.status = status ?? "";
-        if (progress >= 0) j.progress = progress;
+        if (progress >= 0)
+            j.progress = Mathf.Clamp(progress, 0, 100);
+
+        // Only show percentage for actual 3D model generation jobs.
+        // For poster, texture, run_code, etc. the dialog shows elapsed time only.
+        if (_isExecutingCleanAction &&
+            _showPercentForCurrentAction &&
+            (j.type == "model" || j.type == "model+code"))
+        {
+            _lastCleanProgressPercent = j.progress;
+            UpdateCleanExecutionProgress();
+        }
+
         RefreshJobsUI();
     }
 
@@ -145,6 +165,8 @@ public class VoiceCaptureAndSend : MonoBehaviour
     {
         if (!_jobs.TryGetValue(id, out var j)) return;
         float jobStartTime = j.startTime;
+        string finishedType = j.type;
+
         _jobs.Remove(id);
 
         if (_modelPollRoutines.TryGetValue(id, out var co))
@@ -156,13 +178,20 @@ public class VoiceCaptureAndSend : MonoBehaviour
         _completedJobs.Add(new CompletedJob
         {
             id         = id,
-            type       = j.type,
+            type       = finishedType,
             targetName = j.boundTarget != null ? j.boundTarget.name : "?",
             ok         = ok,
             startTime  = jobStartTime,
             finishTime = Time.realtimeSinceStartup,
             detail     = string.IsNullOrWhiteSpace(reason) ? j.status : reason
         });
+
+        // Do not let the internal "voice" dispatch job overwrite long-running poster/model/texture status.
+        // Actual action jobs stop the clean UI when they finish.
+        if (_isExecutingCleanAction && finishedType != "voice")
+        {
+            StopCleanExecutionProgress(ok ? "Action completed" : "Action failed");
+        }
 
         RefreshJobsUI();
     }
@@ -231,58 +260,198 @@ public class VoiceCaptureAndSend : MonoBehaviour
     {
         if (!IsMasterUser()) return;
 
-        _headerLine = msg;
-        RefreshJobsUI();
+        _headerLine = msg ?? "";
+        SetStatusText(_headerLine);
     }
 
     private void RefreshJobsUI()
     {
-        if (!IsMasterUser()) return;
-        if (recordingStatusText == null) return;
+        // Clean VR dialog mode:
+        // Do not print verbose job tracker lines such as "[RUN] #1 voice..."
+        // Status/progress is now controlled explicitly by SetStatusText()
+        // and UpdateCleanExecutionProgress().
+    }
 
-        float now = Time.realtimeSinceStartup;
-        _completedJobs.RemoveAll(c => now - c.finishTime > completedJobLingerSeconds);
+    private void SetStatusText(string msg)
+    {
+        if (!IsMasterUser()) return;
+        if (recordingStatusText != null)
+            recordingStatusText.text = msg ?? "";
+    }
+
+    private void SetTranscriptClean(string transcript)
+    {
+        if (!IsMasterUser()) return;
+        if (transcriptText != null)
+            transcriptText.text = string.IsNullOrWhiteSpace(transcript)
+                ? ""
+                : "Transcript:\n\n" + transcript.Trim();
+    }
+
+    private void SetIntentClean(Command cmd)
+    {
+        if (!IsMasterUser()) return;
+        if (aiIntentText == null) return;
+
+        if (cmd == null || string.IsNullOrWhiteSpace(cmd.action))
+        {
+            aiIntentText.text = "Intent (action): no_action";
+            return;
+        }
 
         var sb = new StringBuilder();
+        sb.AppendLine("Intent (action): " + cmd.action);
 
-        if (!string.IsNullOrEmpty(_headerLine))
-            sb.AppendLine(_headerLine);
-
-        bool hasRunning = _jobs.Count > 0;
-        bool hasDone    = _completedJobs.Count > 0;
-
-        if (!hasRunning && !hasDone)
+        if (!string.IsNullOrWhiteSpace(cmd.behaviour_prompt))
         {
-            if (string.IsNullOrEmpty(_headerLine))
-                sb.Append("Ready.");
+            sb.AppendLine();
+            sb.AppendLine("Behaviour prompt:");
+            sb.AppendLine(cmd.behaviour_prompt);
+        }
+        else if (!string.IsNullOrWhiteSpace(cmd.prompt))
+        {
+            sb.AppendLine();
+            sb.AppendLine("Prompt:");
+            sb.AppendLine(cmd.prompt);
+        }
+        else if (!string.IsNullOrWhiteSpace(cmd.image_prompt))
+        {
+            sb.AppendLine();
+            sb.AppendLine("Image prompt:");
+            sb.AppendLine(cmd.image_prompt);
+        }
+        else if (!string.IsNullOrWhiteSpace(cmd.texture_prompt))
+        {
+            sb.AppendLine();
+            sb.AppendLine("Texture prompt:");
+            sb.AppendLine(cmd.texture_prompt);
+        }
+
+        aiIntentText.text = sb.ToString().TrimEnd();
+    }
+
+    private Command GetPrimaryCommand(Command[] commands, Command singleCommand)
+    {
+        if (singleCommand != null)
+            return singleCommand;
+
+        if (commands != null && commands.Length > 0)
+        {
+            foreach (var c in commands)
+            {
+                if (c != null && !string.IsNullOrWhiteSpace(c.action))
+                    return c;
+            }
+        }
+
+        return null;
+    }
+
+    private string GetCleanActionLabel(Command cmd)
+    {
+        if (cmd == null || string.IsNullOrWhiteSpace(cmd.action))
+            return "Executing action";
+
+        string action = cmd.action.Trim().ToLowerInvariant();
+
+        if (action == "run_code")
+        {
+            string p = cmd.behaviour_prompt != null ? cmd.behaviour_prompt.ToLowerInvariant() : "";
+
+            if (p.Contains("color") || p.Contains("colour") || p.Contains("renderer") || p.Contains("material"))
+                return "Changing color";
+
+            if (p.Contains("move") || p.Contains("place") || p.Contains("position") || p.Contains("put"))
+                return "Moving object";
+
+            if (p.Contains("rotate") || p.Contains("rotation"))
+                return "Rotating object";
+
+            if (p.Contains("scale") || p.Contains("resize") || p.Contains("size"))
+                return "Resizing object";
+
+            if (p.Contains("fire") || p.Contains("smoke") || p.Contains("particle") || p.Contains("water") || p.Contains("spark"))
+                return "Creating visual effect";
+
+            return "Running script";
+        }
+
+        if (action == "generate_model") return "Generating 3D model";
+        if (action == "create_poster") return "Creating poster";
+        if (action == "set_wall_texture") return "Applying texture";
+        if (action == "no_action") return "No action";
+
+        return "Executing action";
+    }
+
+    private bool IsLongRunningCommand(Command cmd)
+    {
+        if (cmd == null || string.IsNullOrWhiteSpace(cmd.action))
+            return false;
+
+        string action = cmd.action.Trim().ToLowerInvariant();
+
+        // These actions finish later in their own coroutine.
+        // run_code usually dispatches immediately.
+        return action == "generate_model" ||
+               action == "create_poster" ||
+               action == "set_wall_texture";
+    }
+
+
+    private void StartCleanExecutionProgress(Command cmd)
+    {
+        _currentActionLabel = GetCleanActionLabel(cmd);
+        _executionStartTime = Time.realtimeSinceStartup;
+        _isExecutingCleanAction = true;
+        _lastCleanProgressPercent = 0;
+
+        // Percentage is only meaningful for Meshy / 3D generation jobs.
+        // For all other commands we only show elapsed time.
+        string action = cmd != null && !string.IsNullOrWhiteSpace(cmd.action)
+            ? cmd.action.Trim().ToLowerInvariant()
+            : "";
+
+        _showPercentForCurrentAction = action == "generate_model";
+
+        UpdateCleanExecutionProgress();
+    }
+
+    private void StopCleanExecutionProgress(string finalLabel = null)
+    {
+        if (!_isExecutingCleanAction && string.IsNullOrWhiteSpace(_currentActionLabel))
+            return;
+
+        float elapsed = Mathf.Max(0f, Time.realtimeSinceStartup - _executionStartTime);
+        string label = string.IsNullOrWhiteSpace(finalLabel) ? _currentActionLabel : finalLabel;
+
+        bool showPercent = _showPercentForCurrentAction;
+
+        _isExecutingCleanAction = false;
+        _showPercentForCurrentAction = false;
+
+        if (showPercent)
+            SetStatusText($"{label}\n\nElapsed time: {elapsed:0.0} s\nProgress: 100%");
+        else
+            SetStatusText($"{label}\n\nFinished in {elapsed:0.0} s");
+    }
+
+    private void UpdateCleanExecutionProgress()
+    {
+        if (!_isExecutingCleanAction || recordingStatusText == null)
+            return;
+
+        float elapsed = Mathf.Max(0f, Time.realtimeSinceStartup - _executionStartTime);
+
+        if (_showPercentForCurrentAction)
+        {
+            int percent = Mathf.Clamp(_lastCleanProgressPercent, 0, 99);
+            SetStatusText($"{_currentActionLabel}\n\nElapsed time: {elapsed:0.0} s\nProgress: {percent}%");
         }
         else
         {
-            if (hasRunning)
-            {
-                sb.AppendLine($"-- {_jobs.Count} running --");
-                foreach (var kv in _jobs)
-                {
-                    var j = kv.Value;
-                    string t = j.boundTarget != null ? j.boundTarget.name : "?";
-                    sb.AppendLine($"[RUN] #{j.id} {j.type}  [{t}]  {j.progress}%  {j.ElapsedSeconds:0.0}s  ({j.status})");
-                }
-            }
-
-            if (hasDone)
-            {
-                if (hasRunning) sb.AppendLine("-- done --");
-                foreach (var c in _completedJobs)
-                {
-                    string icon = c.ok ? "Okay" : "Fail";
-                    float  took = c.finishTime - c.startTime;
-                    string ts   = took < 0.05f ? "<0.1s" : $"{took:0.0}s";
-                    sb.AppendLine($"{icon} #{c.id} {c.type}  [{c.targetName}]  {c.detail}  {ts}");
-                }
-            }
+            SetStatusText($"{_currentActionLabel}\n\nElapsed time: {elapsed:0.0} s");
         }
-
-        recordingStatusText.text = sb.ToString().TrimEnd();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -454,8 +623,9 @@ public class VoiceCaptureAndSend : MonoBehaviour
 
         ApplyFeedbackUIVisibility();
 
-        SetHeaderLine("Ready. Hold A to record.");
-        RefreshJobsUI();
+        SetStatusText("Keep pressing A for Recording\nRelease A to Stop Recording");
+        if (transcriptText != null) transcriptText.text = "";
+        if (aiIntentText != null) aiIntentText.text = "";
 
         var devices = new List<InputDevice>();
         InputDevices.GetDevicesAtXRNode(XRNode.RightHand, devices);
@@ -489,11 +659,11 @@ public class VoiceCaptureAndSend : MonoBehaviour
             rightController.TryGetFeatureValue(CommonUsages.primaryButton, out bool btnDown);
 
             // Debug information
-            Debug.Log(
+          /*  Debug.Log(
                 $"[VoiceCaptureAndSend] primaryButton={btnDown}  " +
                 $"lastAPressed={lastAPressed}  " +
                 $"isRecording={isRecording}"
-            );
+            );*/
 
             // Start recording on button press
             if (btnDown && !lastAPressed && !isRecording)
@@ -516,6 +686,8 @@ public class VoiceCaptureAndSend : MonoBehaviour
             lastAPressed = false;
         }
         
+        UpdateCleanExecutionProgress();
+
         if ((_jobs.Count > 0 || _completedJobs.Count > 0) && Time.realtimeSinceStartup >= _nextTickTime)
         {
             _nextTickTime = Time.realtimeSinceStartup + tickUiInterval;
@@ -542,7 +714,14 @@ public class VoiceCaptureAndSend : MonoBehaviour
 
         recordedClip = Microphone.Start(microphoneDevice, false, maxRecordLengthSeconds, sampleRate);
         isRecording = true;
-        SetHeaderLine("Recording... (release A to send)");
+
+        _isExecutingCleanAction = false;
+        _currentActionLabel = "";
+
+        SetStatusText("Recording...");
+
+        if (transcriptText != null) transcriptText.text = "";
+        if (aiIntentText != null) aiIntentText.text = "";
     }
 
     private Coroutine _screenshotLoopCoroutine = null;
@@ -637,7 +816,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
         float requestStartTime = Time.realtimeSinceStartup;
         int   voiceJobId       = StartJob("voice", "UPLOADING", null, requestStartTime);
 
-        SetHeaderLine("Processing...");
+        SetStatusText("Recording stopped.\n\nProcessing...");
         StartCoroutine(SendAudioToServer(wavData, gazeTargetName, wallAnchor, voiceJobId, requestStartTime));
     }
 
@@ -701,13 +880,15 @@ public class VoiceCaptureAndSend : MonoBehaviour
                 yield break;
             }
 
-            if (IsMasterUser() && transcriptText != null) transcriptText.text = gateResult.transcript;
+            Command primaryCommandForDisplay = GetPrimaryCommand(gateResult.commands, gateResult.command);
+            SetTranscriptClean(gateResult.transcript);
+            SetIntentClean(primaryCommandForDisplay);
 
             // ── Confirmation required ─────────────────────────────────────
             if (gateResult.requires_confirmation)
             {
                 UpdateJob(voiceJobId, "AWAITING_CONFIRM", 70);
-                SetHeaderLine("Waiting for confirmation...");
+                SetStatusText("Waiting for confirmation...");
 
                 var  capturedCommands = gateResult.commands;
                 var  capturedCommand  = gateResult.command;
@@ -722,7 +903,12 @@ public class VoiceCaptureAndSend : MonoBehaviour
                     confirmationDialog.Show(
                         gateResult.session_id,
                         dialogText,
-                        onExecute: _ => { confirmed = true; }
+                        onExecute: _ =>
+                        {
+                            confirmed = true;
+                            Command commandForProgress = GetPrimaryCommand(capturedCommands, capturedCommand);
+                            StartCleanExecutionProgress(commandForProgress);
+                        }
                     );
 
                     float timeout = 60f, waited = 0f;
@@ -737,11 +923,14 @@ public class VoiceCaptureAndSend : MonoBehaviour
                 {
                     confirmed = true;
                     Debug.LogWarning("[VoiceCaptureAndSend] ConfirmationDialog not assigned — auto-executing.");
+                    Command commandForProgress = GetPrimaryCommand(capturedCommands, capturedCommand);
+                    StartCleanExecutionProgress(commandForProgress);
                 }
 
                 if (!confirmed)
                 {
-                    SetHeaderLine("Command cancelled.");
+                    _isExecutingCleanAction = false;
+                    SetStatusText("Command cancelled.");
                     FinishJob(voiceJobId, false, "cancelled");
                     _headerLine = "";
                     RefreshJobsUI();
@@ -768,6 +957,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
     {
         bool executedAnything   = false;
         bool startedAnyAsyncJob = false;
+        Command primaryCommandForProgress = GetPrimaryCommand(commands, singleCommand);
 
         // Special case: the server may return:
         //   1) generate_model  -> e.g. Generated_Tree
@@ -834,8 +1024,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
                     executedAnything   = true;
                     startedAnyAsyncJob = true;
 
-                    if (IsMasterUser() && aiIntentText != null)
-                        aiIntentText.text = $"Generating and placing: {genPrompt}";
+                    // Keep the clean intent text already shown in the dialog.
 
                     if (stateStore != null) stateStore.RequestSave();
                     FinishJob(voiceJobId, true, "dispatched_model_then_code");
@@ -871,6 +1060,12 @@ public class VoiceCaptureAndSend : MonoBehaviour
 
         if (stateStore != null) stateStore.RequestSave();
         FinishJob(voiceJobId, true, startedAnyAsyncJob ? "dispatched_async" : "done");
+
+        // For immediate actions like run_code, stop the clean progress here.
+        // For poster/texture/model, their own coroutine stops it when the real work is finished.
+        if (_isExecutingCleanAction && !IsLongRunningCommand(primaryCommandForProgress))
+            StopCleanExecutionProgress("Action completed");
+
         _headerLine = "";
         RefreshJobsUI();
     }
@@ -908,7 +1103,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
                 Coroutine co = StartCoroutine(PollTextTo3D_Job(jobId, p, n, stage, style));
                 _modelPollRoutines[jobId] = co;
 
-                if (IsMasterUser() && aiIntentText != null) aiIntentText.text = $"Generating 3D: {p}";
+                // Keep the clean intent text already shown in the dialog.
                 return true;
             }
 
@@ -934,28 +1129,38 @@ public class VoiceCaptureAndSend : MonoBehaviour
                 int jobId = StartJob("poster", "PENDING", null);
                 StartCoroutine(GeneratePosterImageAndSpawn_Job(jobId, prompt, wallAnchor, w, h));
 
-                if (IsMasterUser() && aiIntentText != null) aiIntentText.text = $"Poster: {prompt}";
+                // Keep the clean intent text already shown in the dialog.
                 return true;
             }
 
             // ── 3. set_wall_texture ───────────────────────────────────────
             case "set_wall_texture":
             {
-                if (!wallAnchor.IsValid())
-                {
-                    Debug.LogWarning("[VoiceCaptureAndSend] set_wall_texture: no wall surface — look at a wall before stopping.");
-                    SetHeaderLine("Look at a wall first.");
-                    return false;
-                }
+                    if (!wallAnchor.IsValid() && !string.IsNullOrWhiteSpace(cmd.target))
+                    {
+                        GameObject targetObj = FindGameObjectCaseInsensitive(cmd.target);
 
-                string tPrompt = string.IsNullOrWhiteSpace(cmd.texture_prompt) ? "brick wall" : cmd.texture_prompt;
-                float  tile    = cmd.tile_scale > 0f ? cmd.tile_scale : 1f;
+                        if (targetObj != null)
+                        {
+                            wallAnchor = CreateAnchorFromTargetObject(targetObj);
+                            Debug.Log("[VoiceCaptureAndSend] set_wall_texture using target: " + targetObj.name);
+                        }
+                    }
 
-                int jobId = StartJob("texture", "PENDING", null);
-                StartCoroutine(GenerateTextureAndApply_Job(jobId, tPrompt, wallAnchor, tile));
+                    if (!wallAnchor.IsValid())
+                    {
+                        Debug.LogWarning("[VoiceCaptureAndSend] set_wall_texture: no valid target found.");
+                        SetStatusText("Texture target not found.");
+                        return false;
+                    }
 
-                if (IsMasterUser() && aiIntentText != null) aiIntentText.text = $"Texture: {tPrompt}";
-                return true;
+                    string tPrompt = string.IsNullOrWhiteSpace(cmd.texture_prompt) ? "brick wall" : cmd.texture_prompt;
+                    float tile = cmd.tile_scale > 0f ? cmd.tile_scale : 1f;
+
+                    int jobId = StartJob("texture", "PENDING", null);
+                    StartCoroutine(GenerateTextureAndApply_Job(jobId, tPrompt, wallAnchor, tile));
+
+                    return true;
             }
 
             // ── 4. run_code ───────────────────────────────────────────────
@@ -1010,15 +1215,15 @@ public class VoiceCaptureAndSend : MonoBehaviour
                     if (stateStore != null)
                         stateStore.RequestSave();
 
-                    if (IsMasterUser() && aiIntentText != null)
-                        aiIntentText.text = $"Code: {behaviourPrompt}";
+                    // Keep the clean intent text already shown in the dialog.
 
                     return true;
                 }
 
             // ── 5. no_action ─────────────────────────────────────────────
             case "no_action":
-                if (IsMasterUser() && aiIntentText != null) aiIntentText.text = "No action.";
+                SetIntentClean(cmd);
+                SetStatusText("No action needed.");
                 return false;
 
             default:
@@ -1062,8 +1267,18 @@ public class VoiceCaptureAndSend : MonoBehaviour
                     string st = string.IsNullOrEmpty(resp.status) ? "IN_PROGRESS" : resp.status;
                     UpdateJob(jobId, st, resp.progress);
 
-                    if (st == "SUCCEEDED" || resp.progress >= 100) { UpdateJob(jobId, "SUCCEEDED", 100); FinishJob(jobId, true); yield break; }
-                    if (st == "FAILED"    || st == "ERROR")        { FinishJob(jobId, false, "FAILED");                         yield break; }
+                    if (st == "SUCCEEDED" || resp.progress >= 100)
+                    {
+                        UpdateJob(jobId, "SUCCEEDED", 100);
+                        FinishJob(jobId, true, "Model generated");
+                        yield break;
+                    }
+
+                    if (st == "FAILED" || st == "ERROR")
+                    {
+                        FinishJob(jobId, false, "Model generation failed");
+                        yield break;
+                    }
                 }
 
                 yield return new WaitForSeconds(pollInterval);
@@ -1243,6 +1458,25 @@ public class VoiceCaptureAndSend : MonoBehaviour
         {
             return "http://localhost:8000" + apiPath;
         }
+    }
+
+    private WallAnchor CreateAnchorFromTargetObject(GameObject targetObj)
+    {
+        WallAnchor anchor = default;
+
+        if (targetObj == null)
+            return anchor;
+
+        Renderer r = targetObj.GetComponentInChildren<Renderer>();
+
+        if (r == null)
+            return anchor;
+
+        anchor.wall = targetObj.transform;
+        anchor.localPoint = targetObj.transform.InverseTransformPoint(r.bounds.center);
+        anchor.localNormal = targetObj.transform.InverseTransformDirection(Vector3.forward);
+
+        return anchor;
     }
 
     private Vector3 GetPlacementPosition()
