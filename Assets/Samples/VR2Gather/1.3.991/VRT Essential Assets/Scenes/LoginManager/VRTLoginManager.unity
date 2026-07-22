@@ -475,6 +475,21 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1038042827212491570, guid: e4a2ad980cb30454eab747ddbac46ff6,
+        type: 3}
+      propertyPath: m_Move
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 1038042827212491570, guid: e4a2ad980cb30454eab747ddbac46ff6,
+        type: 3}
+      propertyPath: m_SmoothTurnEnabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1038042827212491570, guid: e4a2ad980cb30454eab747ddbac46ff6,
+        type: 3}
+      propertyPath: m_SmoothMotionEnabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1797188872766212255, guid: e4a2ad980cb30454eab747ddbac46ff6,
         type: 3}
       propertyPath: m_AnchorMax.y
@@ -508,6 +523,11 @@ PrefabInstance:
     - target: {fileID: 1797188873595955978, guid: e4a2ad980cb30454eab747ddbac46ff6,
         type: 3}
       propertyPath: m_SizeDelta.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3228378964655169937, guid: e4a2ad980cb30454eab747ddbac46ff6,
+        type: 3}
+      propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3228378964655169937, guid: e4a2ad980cb30454eab747ddbac46ff6,

@@ -801,14 +801,37 @@ public class VoiceCaptureAndSend : MonoBehaviour
         trimmed.SetData(samples, 0);
         byte[] wavData = AudioClipToWav(trimmed);
 
-        // Snapshot gaze
+        // Snapshot target for the server.
+        // PRIORITY 1: the LOCKED selection (controller ray + select button). This is the
+        //             object the user explicitly chose, and it survives lowering the
+        //             controller while speaking — the whole point of the lock workflow.
+        // PRIORITY 2 (fallback): the live ray hit at the moment recording stops.
         string     gazeTargetName = "none";
         WallAnchor wallAnchor     = default;
 
-        if (gazeInteractor != null && gazeInteractor.TryGetCurrentHit(out RaycastHit hit) && hit.collider != null)
+        if (gazeInteractor != null)
         {
-            gazeTargetName = hit.collider.gameObject.name;
-            wallAnchor     = WallAnchor.FromHit(hit);
+            if (gazeInteractor.LockedTarget != null)
+            {
+                gazeTargetName = gazeInteractor.LockedTarget.name;
+                if (gazeInteractor.TryGetLockedHit(out RaycastHit lockedHit))
+                    wallAnchor = WallAnchor.FromHit(lockedHit);
+                Debug.Log($"[VoiceCaptureAndSend] Target = LOCKED selection: '{gazeTargetName}'");
+            }
+            else if (gazeInteractor.TryGetCurrentHit(out RaycastHit hit) && hit.collider != null)
+            {
+                // Resolve through AIControllable so the reported name matches what the
+                // selection system would lock (child colliders can have different names).
+                var aic = hit.collider.GetComponent<AIControllable>();
+                if (aic == null) aic = hit.collider.GetComponentInParent<AIControllable>();
+                gazeTargetName = aic != null ? aic.name : hit.collider.gameObject.name;
+                wallAnchor     = WallAnchor.FromHit(hit);
+                Debug.Log($"[VoiceCaptureAndSend] Target = live ray hit (no lock): '{gazeTargetName}'");
+            }
+            else
+            {
+                Debug.Log("[VoiceCaptureAndSend] Target = none (no lock, no ray hit)");
+            }
         }
 
         _capturedTargetNameAtStop = gazeTargetName != "none" ? gazeTargetName : null;
