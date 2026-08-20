@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine.XR;
 using UnityEngine.InputSystem;
 using TMPro;
+using VRT.Orchestrator;
 
 /// <summary>
 /// Selection + action hub. Targeting can come from gaze (head cone) OR a controller ray
@@ -116,6 +117,7 @@ public class GazeTargetInteractor : MonoBehaviour
 
     AIControllable _current;
     AIControllable _locked;
+    NetworkedSelectionSync _selectionSync;
     bool _lockIsManual = false;
 
     bool _pendingStack = false;
@@ -226,6 +228,9 @@ public class GazeTargetInteractor : MonoBehaviour
             rend.material.SetColor("_EmissionColor", indicatorColor * 1.5f);
             _indicator.SetActive(false);
         }
+
+        if (_selectionSync == null)
+            _selectionSync = FindFirstObjectByType<NetworkedSelectionSync>();
 
         UpdateSelectionPanel();
     }
@@ -411,8 +416,18 @@ public class GazeTargetInteractor : MonoBehaviour
         if (next != _current)
         {
             if (highlightSelection && _current != null && _current != _locked) RemoveOutline(_current);
-            if (highlightSelection && outlineOnHover && next != null && next != _locked) AddOutline(next);
+            bool isMaster =
+                VRTOrchestratorSingleton.Comm != null &&
+                VRTOrchestratorSingleton.Comm.UserIsMaster;
 
+            if (highlightSelection &&
+                isMaster &&
+                outlineOnHover &&
+                next != null &&
+                next != _locked)
+            {
+                AddOutline(next);
+            }
             _current = next;
 
             if (logCurrentChanges)
@@ -437,7 +452,22 @@ public class GazeTargetInteractor : MonoBehaviour
             (mode == TargetingMode.ControllerRay && requireButtonToLock && ControllerSelectButtonDown());
 
         if (selectPressed)
-            LockCurrent(fromVoice: false);
+        {
+            bool isMaster =
+                VRTOrchestratorSingleton.Comm != null &&
+                VRTOrchestratorSingleton.Comm.UserIsMaster;
+
+            if (isMaster)
+            {
+                LockCurrent(fromVoice: false);
+            }
+            else
+            {
+                Debug.Log(
+                    "[GazeTargetInteractor] Selection ignored: only master can select."
+                );
+            }
+        }
     }
 
     // Order of preference: explicit reference -> auto-bound action -> legacy device.
@@ -559,6 +589,15 @@ public class GazeTargetInteractor : MonoBehaviour
             Debug.Log($"[SELECT] {FriendlyName(_locked)} selected (parent: {SelectedParentName ?? "none"})");
         }
 
+        if (_locked != null && VRTOrchestratorSingleton.Comm != null && VRTOrchestratorSingleton.Comm.UserIsMaster)
+        {
+            if (_selectionSync == null)
+                _selectionSync = FindFirstObjectByType<NetworkedSelectionSync>();
+
+            if (_selectionSync != null)
+                _selectionSync.SendSelection(_locked.gameObject);
+        }
+
         UpdateSelectionPanel();
 
         // Pop the sphere onto the locked object immediately.
@@ -614,6 +653,16 @@ public class GazeTargetInteractor : MonoBehaviour
         if (logStackActions) Debug.Log($"[STACK] UNLOCK -> locked=null current={NameOrNull(_current)} pendingStack=false manualLock=false");
         UpdateSelectionPanel();
         UpdateIndicator();
+
+        if (VRTOrchestratorSingleton.Comm != null && VRTOrchestratorSingleton.Comm.UserIsMaster)
+        {
+            if (_selectionSync == null)
+                _selectionSync = FindFirstObjectByType<NetworkedSelectionSync>();
+
+            if (_selectionSync != null)
+                _selectionSync.SendClearSelection();
+        }
+
     }
 
     public void ArmStackOnNext(float gap = 0.01f)

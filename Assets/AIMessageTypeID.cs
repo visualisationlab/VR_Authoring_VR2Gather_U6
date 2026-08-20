@@ -16,4 +16,7 @@ public static class AIMessageTypeID
 
     public static readonly MessageTypeID TID_AIRuntimeCodeSyncMessage =
         (MessageTypeID)1005;
+
+    public static readonly MessageTypeID TID_AISelectionSyncMessage =
+    (MessageTypeID)1006;
 }
