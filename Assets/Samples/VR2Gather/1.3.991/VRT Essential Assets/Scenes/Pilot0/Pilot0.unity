@@ -43474,7 +43474,7 @@ MonoBehaviour:
   outlineOnHover: 1
   selectionPanelText: {fileID: 667478970}
   nothingSelectedText: Nothing selected
-  showIndicator: 1
+  showIndicator: 0
   indicatorOnlyWhenLocked: 1
   indicatorVolumeM3: 1.5
   indicatorColor: {r: 1, g: 0.25, b: 0.2, a: 1}

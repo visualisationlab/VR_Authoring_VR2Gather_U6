@@ -96,7 +96,7 @@ public class GazeTargetInteractor : MonoBehaviour
     public string nothingSelectedText = "Nothing selected";
 
     [Header("Indicator sphere ('balloon')")]
-    public bool showIndicator = true;
+    public bool showIndicator = false;
     [Tooltip("If true, the sphere appears ONLY on the LOCKED object (after a select press). " +
              "If false, it also previews on whatever the ray is currently hovering.")]
     public bool indicatorOnlyWhenLocked = true;
