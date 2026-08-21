@@ -41,6 +41,16 @@ namespace VRT.Pilots.Common
         }
 
         [System.Serializable]
+        public class AIPosterResizeMessage : BaseMessage
+        {
+            public string PosterId;
+            public string NetworkId;
+            public float WidthMeters;
+            public float HeightMeters;
+        }
+
+
+        [System.Serializable]
         public class AIModelCreateMessage : BaseMessage
         {
             public string ModelId;
@@ -70,6 +80,8 @@ namespace VRT.Pilots.Common
             VRTOrchestratorSingleton.Comm.RegisterEventType(AIMessageTypeID.TID_AITextureSyncMessage, typeof(AITextureSyncMessage));
             VRTOrchestratorSingleton.Comm.RegisterEventType(AIMessageTypeID.TID_AIPosterCreateMessage, typeof(AIPosterCreateMessage));
             VRTOrchestratorSingleton.Comm.RegisterEventType(AIMessageTypeID.TID_AIModelCreateMessage, typeof(AIModelCreateMessage));
+            VRTOrchestratorSingleton.Comm.RegisterEventType(AIMessageTypeID.TID_AIPosterResizeMessage, typeof(AIPosterResizeMessage));
+
         }
 
         void OnEnable()
@@ -77,6 +89,7 @@ namespace VRT.Pilots.Common
             VRTOrchestratorSingleton.Comm.Subscribe<AITextureSyncMessage>(OnTextureSync);
             VRTOrchestratorSingleton.Comm.Subscribe<AIPosterCreateMessage>(OnPosterCreate);
             VRTOrchestratorSingleton.Comm.Subscribe<AIModelCreateMessage>(OnModelCreate);
+            VRTOrchestratorSingleton.Comm.Subscribe<AIPosterResizeMessage>(OnPosterResize);
         }
 
         void OnDisable()
@@ -84,6 +97,7 @@ namespace VRT.Pilots.Common
             VRTOrchestratorSingleton.Comm?.Unsubscribe<AITextureSyncMessage>(OnTextureSync);
             VRTOrchestratorSingleton.Comm?.Unsubscribe<AIPosterCreateMessage>(OnPosterCreate);
             VRTOrchestratorSingleton.Comm?.Unsubscribe<AIModelCreateMessage>(OnModelCreate);
+            VRTOrchestratorSingleton.Comm?.Unsubscribe<AIPosterResizeMessage>(OnPosterResize);
         }
 
         void ResolveReferences()
@@ -112,6 +126,104 @@ namespace VRT.Pilots.Common
             Send(msg);
             if (debug) Debug.Log($"[NetworkedAIAssetSync] Sent texture sync: target={targetNetworkId}, url={textureUrl}");
         }
+
+        public void SendPosterResized(PersistablePoster poster)
+        {
+            if (poster == null)
+                return;
+
+            var sync =
+                poster.GetComponent<NetworkedAIObjectSync>();
+
+            if (sync == null)
+                return;
+
+            var msg = new AIPosterResizeMessage
+            {
+                PosterId = poster.id,
+                NetworkId = sync.NetworkId,
+                WidthMeters = poster.widthMeters,
+                HeightMeters = poster.heightMeters
+            };
+
+            if (!VRTOrchestratorSingleton.Comm.UserIsMaster)
+                VRTOrchestratorSingleton.Comm.SendTypeEventToMaster(msg);
+            else
+                VRTOrchestratorSingleton.Comm.SendTypeEventToAll(msg);
+
+            if (debug)
+            {
+                Debug.Log(
+                    $"[NetworkedAIAssetSync] Sent poster resize: " +
+                    $"{poster.widthMeters:0.##} x " +
+                    $"{poster.heightMeters:0.##}"
+                );
+            }
+        }
+
+
+        void OnPosterResize(AIPosterResizeMessage msg)
+        {
+            if (msg == null)
+                return;
+
+            if (msg.SenderId ==
+                VRTOrchestratorSingleton.Comm.SelfUser.userId)
+                return;
+
+            if (VRTOrchestratorSingleton.Comm.UserIsMaster)
+                VRTOrchestratorSingleton.Comm
+                    .SendTypeEventToAll(msg, true);
+
+            ResolveReferences();
+
+            PersistablePoster poster = null;
+
+            var target = FindByNetworkId(msg.NetworkId);
+
+            if (target != null)
+                poster = target.GetComponent<PersistablePoster>();
+
+            if (poster == null)
+                poster = FindPosterById(msg.PosterId);
+
+            if (poster == null)
+            {
+                Debug.LogWarning(
+                    "[NetworkedAIAssetSync] Poster resize target not found: "
+                    + msg.PosterId
+                );
+                return;
+            }
+
+            poster.widthMeters =
+                Mathf.Max(0.01f, msg.WidthMeters);
+
+            poster.heightMeters =
+                Mathf.Max(0.01f, msg.HeightMeters);
+
+            if (posterSpawner != null)
+            {
+                posterSpawner.ApplyWorldSizeToPoster(
+                    poster.transform,
+                    poster.widthMeters,
+                    poster.heightMeters
+                );
+            }
+
+            if (sceneStateStore != null)
+                sceneStateStore.RequestSave();
+
+            if (debug)
+            {
+                Debug.Log(
+                    $"[NetworkedAIAssetSync] Applied remote poster resize: " +
+                    $"{poster.widthMeters:0.##} x " +
+                    $"{poster.heightMeters:0.##}"
+                );
+            }
+        }
+
 
         public void SendPosterCreated(PersistablePoster poster)
         {

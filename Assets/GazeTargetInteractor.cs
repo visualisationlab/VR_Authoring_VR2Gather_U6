@@ -523,9 +523,29 @@ public class GazeTargetInteractor : MonoBehaviour
         for (int i = 0; i < count; i++)
         {
             var col = _hitBuffer[i].collider;
+            if (col == null)
+                continue;
+
+            // If ray hits a poster, ALWAYS select the poster,
+            // never the wall/building behind it.
+            var poster = col.GetComponentInParent<PersistablePoster>();
+
+            if (poster != null)
+            {
+                var posterAI = poster.GetComponent<AIControllable>();
+
+                if (posterAI != null)
+                    return posterAI;
+            }
+
+            // Normal object
             var a = col.GetComponent<AIControllable>();
-            if (a == null) a = col.GetComponentInParent<AIControllable>();
-            if (a != null) return a;
+
+            if (a == null)
+                a = col.GetComponentInParent<AIControllable>();
+
+            if (a != null)
+                return a;
         }
         return null;
     }
@@ -723,33 +743,122 @@ public class GazeTargetInteractor : MonoBehaviour
     public void SetScaleUniformOnGazed(float s)
     {
         var t = TargetForActions;
-        if (t != null) { t.SetScaleUniform(s); RefreshOutline(t); }
+        if (t == null) return;
+
+        var poster = t.GetComponent<PersistablePoster>();
+
+        if (poster != null)
+        {
+            float size = Mathf.Max(0.01f, s);
+
+            poster.widthMeters = size;
+            poster.heightMeters = size;
+
+            ApplyPosterSizeAndSync(t, poster);
+            return;
+        }
+
+        t.SetScaleUniform(s);
+        SyncNormalObjectNow(t);
+        RefreshOutline(t);
     }
 
     public void SetScaleXYZOnGazed(float x, float y, float z)
     {
         var t = TargetForActions;
-        if (t != null) { t.SetScaleXYZ(x, y, z); RefreshOutline(t); }
+        if (t == null) return;
+
+        var poster = t.GetComponent<PersistablePoster>();
+
+        if (poster != null)
+        {
+            poster.widthMeters = Mathf.Max(0.01f, x);
+            poster.heightMeters = Mathf.Max(0.01f, y);
+
+            ApplyPosterSizeAndSync(t, poster);
+            return;
+        }
+
+        t.SetScaleXYZ(x, y, z);
+        SyncNormalObjectNow(t);
+        RefreshOutline(t);
     }
 
     public void ScaleGazedBy(float factor)
     {
         var t = TargetForActions;
         if (t == null) return;
+
+        factor = Mathf.Max(0.01f, factor);
+
         var poster = t.GetComponent<PersistablePoster>();
+
         if (poster != null)
         {
-            poster.widthMeters = Mathf.Max(0.01f, poster.widthMeters * factor);
-            poster.heightMeters = Mathf.Max(0.01f, poster.heightMeters * factor);
-            var spawner = FindFirstObjectByType<PosterSpawner>();
-            if (spawner != null) spawner.ApplyWorldSizeToPoster(t.transform, poster.widthMeters, poster.heightMeters);
-            else t.transform.localScale *= factor;
+            poster.widthMeters =
+                Mathf.Max(0.01f, poster.widthMeters * factor);
+
+            poster.heightMeters =
+                Mathf.Max(0.01f, poster.heightMeters * factor);
+
+            ApplyPosterSizeAndSync(t, poster);
+
+            // VERY IMPORTANT:
+            // Do not continue into normal object scaling.
+            return;
         }
-        else
-        {
-            t.ScaleBy(factor);
-        }
+
+        t.ScaleBy(factor);
+        SyncNormalObjectNow(t);
         RefreshOutline(t);
+    }
+
+    void ApplyPosterSizeAndSync(
+    AIControllable target,
+    PersistablePoster poster)
+    {
+        if (target == null || poster == null)
+            return;
+
+        var spawner = FindFirstObjectByType<PosterSpawner>();
+
+        if (spawner != null)
+        {
+            spawner.ApplyWorldSizeToPoster(
+                target.transform,
+                poster.widthMeters,
+                poster.heightMeters
+            );
+        }
+
+        RefreshOutline(target);
+
+        var store = FindFirstObjectByType<SceneStateStore>();
+
+        if (store != null)
+            store.RequestSave();
+
+        var assetSync =
+            FindFirstObjectByType<VRT.Pilots.Common.NetworkedAIAssetSync>();
+
+        if (assetSync != null)
+            assetSync.SendPosterResized(poster);
+    }
+
+    void SyncNormalObjectNow(AIControllable target)
+    {
+        if (target == null)
+            return;
+
+        var sync =
+            target.GetComponent<VRT.Pilots.Common.NetworkedAIObjectSync>();
+
+        if (sync == null)
+            sync = target.GetComponentInParent<
+                VRT.Pilots.Common.NetworkedAIObjectSync>();
+
+        if (sync != null)
+            sync.MarkDirtyAndSendNow();
     }
 
     public void MoveGazedToWorld(float x, float y, float z) { var t = TargetForActions; if (t != null) t.MoveWorld(x, y, z); }
@@ -761,39 +870,70 @@ public class GazeTargetInteractor : MonoBehaviour
     public void ScaleAxisOnGazed(string axis, float deltaMeters)
     {
         var target = TargetForActions;
-        if (target == null) return;
+        if (target == null)
+            return;
 
         var poster = target.GetComponent<PersistablePoster>();
+
         if (poster != null)
         {
             Transform pt = target.transform;
+
             Vector3 posterRight = pt.right;
             Vector3 posterUp = pt.up;
+
             int widthWorldAxis = DominantAxis(posterRight);
             int heightWorldAxis = DominantAxis(posterUp);
-            int requestedAxis = axis == "x" ? 0 : axis == "y" ? 1 : 2;
-            var spawner = FindFirstObjectByType<PosterSpawner>();
-            if (requestedAxis == heightWorldAxis) poster.heightMeters = Mathf.Max(0.01f, poster.heightMeters + deltaMeters);
-            else poster.widthMeters = Mathf.Max(0.01f, poster.widthMeters + deltaMeters);
-            if (spawner != null) spawner.ApplyWorldSizeToPoster(pt, poster.widthMeters, poster.heightMeters);
+
+            int requestedAxis =
+                axis == "x" ? 0 :
+                axis == "y" ? 1 : 2;
+
+            if (requestedAxis == heightWorldAxis)
+            {
+                poster.heightMeters =
+                    Mathf.Max(
+                        0.01f,
+                        poster.heightMeters + deltaMeters
+                    );
+            }
             else
             {
-                Vector3 s = pt.localScale;
-                s.x = poster.widthMeters; s.y = poster.heightMeters;
-                pt.localScale = s;
+                poster.widthMeters =
+                    Mathf.Max(
+                        0.01f,
+                        poster.widthMeters + deltaMeters
+                    );
             }
+
+            // Applies locally + saves + sends multiplayer resize.
+            ApplyPosterSizeAndSync(target, poster);
+
+            return;
         }
-        else
+
+        // ----- Normal wall / object / generated 3D model -----
+
+        Vector3 s = target.transform.localScale;
+
+        switch (axis)
         {
-            Vector3 s = target.transform.localScale;
-            switch (axis)
-            {
-                case "x": s.x = Mathf.Max(0.01f, s.x + deltaMeters); break;
-                case "y": s.y = Mathf.Max(0.01f, s.y + deltaMeters); break;
-                case "z": s.z = Mathf.Max(0.01f, s.z + deltaMeters); break;
-            }
-            target.transform.localScale = s;
+            case "x":
+                s.x = Mathf.Max(0.01f, s.x + deltaMeters);
+                break;
+
+            case "y":
+                s.y = Mathf.Max(0.01f, s.y + deltaMeters);
+                break;
+
+            case "z":
+                s.z = Mathf.Max(0.01f, s.z + deltaMeters);
+                break;
         }
+
+        target.transform.localScale = s;
+
+        SyncNormalObjectNow(target);
         RefreshOutline(target);
     }
 

@@ -34,7 +34,7 @@ public class AICodeCommandHandler : MonoBehaviour
 
     // {TARGET_NAME} and {SCENE_CONTEXT} are replaced per-request
     const string kSystemPrompt =
-        "You are a Unity C# code generator for Unity 2022.3 LTS. " +
+        "You are a Unity C# code generator for Unity 6.3 LTS (6000.3.x). " +
         "The user describes a behaviour they want applied to a specific GameObject. " +
         "The TARGET GameObject is named '{TARGET_NAME}'. " +
         "Write code as if it will be attached directly to that object " +
@@ -48,7 +48,7 @@ public class AICodeCommandHandler : MonoBehaviour
         "  - One class per response, must inherit MonoBehaviour.\n" +
         "  - Only use: UnityEngine, System, System.Collections, System.Collections.Generic.\n" +
         "  - No Editor-only APIs. No ML-Agents. No external packages.\n" +
-        "  - Keep it simple and correct for Unity 2022.\n" +
+        "  - Keep it simple and correct for Unity 6.3 LTS (6000.3.x).\n" +
         "  - Prefer transform-based movement/rotation.\n" +
         "  - Do not assume Renderer, Animator, or Rigidbody exists on the same GameObject.\n" +
         "  - If visual changes are needed, prefer GetComponentsInChildren<Renderer>().\n" +
@@ -84,6 +84,12 @@ public class AICodeCommandHandler : MonoBehaviour
         "    Use soft spread with a cone, sphere, circle, or rectangle shape as appropriate.\n" +
         "  - The generated script must work immediately after being attached, without requiring any manual setup in the Unity Inspector.\n" +
         "  RELATIONAL PLACEMENT RULES:\n" +
+        "  TARGET ISOLATION RULES — these are hard constraints, never violate them:\n" +
+        "  - You may ONLY read, move, rotate, or scale 'this.gameObject' / 'this.transform'.\n" +
+        "  - NEVER access transform.parent, transform.root, or any ancestor transform.\n" +
+        "  - NEVER modify the position, rotation, or scale of any parent, sibling, or other object.\n" +
+        "  - Objects found via GameObject.Find() are READ-ONLY — use them only to read coordinates or bounds.\n" +
+        "  - To resize, change this.transform.localScale ONLY. Never touch a parent's localScale.\n" +
         "  - The script is attached directly to the TARGET object.\n" +
         "  - Reference objects are NOT targets.\n" +
         "  - Reference objects are only used for spatial calculations.\n" +
@@ -102,7 +108,7 @@ public class AICodeCommandHandler : MonoBehaviour
         "    midpoint = (A.center + B.center) * 0.5f\n" +
         "  - Use GetComponentsInChildren<Renderer>() for bounds calculation.\n" +
         "  - The TARGET object is the object the script is attached to.\n" +
-        "  PARTICLE API RULES — these are hard Unity 2022 constraints, never violate them:\n" +
+        "  PARTICLE API RULES — these are hard Unity 6.3 LTS (6000.3.x) constraints, never violate them:\n" +
         "  - NEVER use ParticleSystemShapeType.Plane — it does not exist. Use ParticleSystemShapeType.Rectangle instead.\n" +
         "  - NEVER use lights.color on ParticleSystem.LightsModule — that property does not exist.\n" +
         "    To tint particle lights, get the Light component from a child GameObject and set light.color there.\n" +
@@ -174,13 +180,37 @@ public class AICodeCommandHandler : MonoBehaviour
     /// effectId = null  → generates a new ID (new command)
     /// effectId = "..." → reuses the existing ID (replay)
     /// </summary>
+    /// 
+
+
+
     public void HandleRunCode(string behaviourPrompt, GameObject target,
-                              string effectId = null, bool isReplay = false)
+                          string effectId = null, bool isReplay = false)
     {
         if (target == null)
         {
             Log("HandleRunCode: target is null, skipping.");
             return;
+        }
+
+        // ── Guardrail: poster resizes never go to the LLM ─────────────────────
+        // Deterministic + parent-safe path handles them on the LOCKED poster.
+        if (!isReplay && LooksLikeScaleIntent(behaviourPrompt))
+        {
+            var gaze = FindFirstObjectByType<GazeTargetInteractor>();
+
+            bool targetIsPoster = target.GetComponentInParent<PersistablePoster>() != null;
+            bool lockedIsPoster = gaze != null && gaze.LockedTarget != null &&
+                                  gaze.LockedTarget.GetComponent<PersistablePoster>() != null;
+
+            // Fire if the resolved target is a poster, OR a poster is currently selected
+            // (covers the case where the name-based target wrongly resolved to the wall).
+            if (gaze != null && (targetIsPoster || lockedIsPoster))
+            {
+                gaze.ScaleGazedBy(ExtractScaleFactor(behaviourPrompt));
+                Log("Poster resize routed to deterministic scaler (LLM bypassed).");
+                return;
+            }
         }
 
         if (string.IsNullOrWhiteSpace(openAiApiKey))
@@ -194,16 +224,34 @@ public class AICodeCommandHandler : MonoBehaviour
 
         StartCoroutine(RequestCode(behaviourPrompt, target, id, isReplay));
     }
+    static bool LooksLikeScaleIntent(string p)
+    {
+        if (string.IsNullOrEmpty(p)) return false;
+        p = p.ToLowerInvariant();
+        return p.Contains("scale") || p.Contains("resize") || p.Contains("size") ||
+           p.Contains("bigger") || p.Contains("smaller") || p.Contains("larger") ||
+           p.Contains("shrink") || p.Contains("grow") || p.Contains("enlarge");
+    }
 
-    // ------------------------------------------------------------------ auto-target
+    static float ExtractScaleFactor(string p)
+    {
+        p = (p ?? "").ToLowerInvariant();
+        if (p.Contains("double") || p.Contains("twice") || p.Contains("2x")) return 2f;
+        if (p.Contains("half") || p.Contains("0.5")) return 0.5f;
+        if (p.Contains("smaller") || p.Contains("shrink") || p.Contains("reduce")) return 0.66f;
+        return 1.5f; // default "make it bigger"
+    }
 
-    /// <summary>
-    /// Resolves the best target GameObject using three strategies in order:
-    ///   1. Raycast from camera centre (what the player is looking at)
-    ///   2. Name match — does any scene object's name appear in the command?
-    ///   3. Fallback to the last successfully resolved target
-    /// </summary>
-    public GameObject ResolveTarget(string command)
+
+// ------------------------------------------------------------------ auto-target
+
+/// <summary>
+/// Resolves the best target GameObject using three strategies in order:
+///   1. Raycast from camera centre (what the player is looking at)
+///   2. Name match — does any scene object's name appear in the command?
+///   3. Fallback to the last successfully resolved target
+/// </summary>
+public GameObject ResolveTarget(string command)
     {
         // 1. Raycast from camera centre
         Camera cam = targetCamera != null ? targetCamera : Camera.main;

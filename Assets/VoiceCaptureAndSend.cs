@@ -1,13 +1,15 @@
-// =============================================================================
+﻿// =============================================================================
 // VoiceCaptureAndSend.cs
 // Records voice → sends to server → server runs Whisper (auto-translates to
-// English) → LLM decides one of 5 actions → Unity dispatches the result.
+// English) → LLM decides an action → Unity dispatches the result.
 //
-// 5 actions:
+// Actions:
 //   generate_model   – 3D object generation via Meshy
 //   create_poster    – poster / image generation
 //   set_wall_texture – texture generation & application
-//   run_code         – everything else (runtime C# script)
+//   scale            – proportional deterministic scaling
+//   set_dimensions   – absolute deterministic world dimensions
+//   run_code         – custom runtime C# behaviour (never resizing)
 //   no_action        – nothing to do
 // =============================================================================
 
@@ -379,6 +381,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
         if (action == "generate_model") return "Generating 3D model";
         if (action == "create_poster") return "Creating poster";
         if (action == "set_wall_texture") return "Applying texture";
+        if (action == "scale" || action == "set_dimensions") return "Resizing object";
         if (action == "no_action") return "No action";
 
         return "Executing action";
@@ -478,6 +481,13 @@ public class VoiceCaptureAndSend : MonoBehaviour
         // set_wall_texture
         public string texture_prompt;
         public float  tile_scale;
+
+        // scale
+        public float    factor;
+
+        // set_dimensions reuses width_m / height_m above.
+        // 0 means "not specified / preserve current".
+        public float    depth_m;
 
         // run_code
         public string   behaviour_prompt;
@@ -1097,6 +1107,73 @@ public class VoiceCaptureAndSend : MonoBehaviour
     // ApplyCommand — 5 cases only
     // ─────────────────────────────────────────────────────────────────────────
 
+    private GameObject ResolveDeterministicTarget(Command cmd)
+    {
+        GameObject targetObj = null;
+
+        if (cmd != null && cmd.targets != null && cmd.targets.Length > 0 &&
+            !string.IsNullOrWhiteSpace(cmd.targets[0]))
+        {
+            targetObj = FindGameObjectCaseInsensitive(cmd.targets[0]);
+        }
+
+        if (targetObj == null && cmd != null && !string.IsNullOrWhiteSpace(cmd.target))
+            targetObj = FindGameObjectCaseInsensitive(cmd.target);
+
+        // Prefer the locked explicit selection when it exists.
+        if (gazeInteractor != null && gazeInteractor.LockedTarget != null)
+        {
+            var locked = gazeInteractor.LockedTarget;
+
+            // If the server target is a Poster_* and the locked selection is the same poster,
+            // keep the locked poster. More importantly, never climb to its wall parent.
+            if (targetObj == null || targetObj.name == locked.name)
+                targetObj = locked.gameObject;
+        }
+
+        if (targetObj == null && !string.IsNullOrWhiteSpace(_capturedTargetNameAtStop))
+            targetObj = FindGameObjectCaseInsensitive(_capturedTargetNameAtStop);
+
+        return targetObj;
+    }
+
+    private AIControllable ResolveDeterministicAI(GameObject targetObj)
+    {
+        if (targetObj == null)
+            return null;
+
+        // Poster always wins over parent wall.
+        PersistablePoster poster = targetObj.GetComponent<PersistablePoster>();
+        if (poster == null)
+            poster = targetObj.GetComponentInParent<PersistablePoster>();
+
+        if (poster != null)
+        {
+            AIControllable posterAI = poster.GetComponent<AIControllable>();
+            if (posterAI != null)
+                return posterAI;
+        }
+
+        AIControllable ai = targetObj.GetComponent<AIControllable>();
+        if (ai == null)
+            ai = targetObj.GetComponentInParent<AIControllable>();
+
+        return ai;
+    }
+
+    private static Bounds GetCombinedRendererBounds(GameObject go)
+    {
+        Renderer[] renderers = go != null ? go.GetComponentsInChildren<Renderer>(true) : null;
+        if (renderers == null || renderers.Length == 0)
+            return new Bounds(go != null ? go.transform.position : Vector3.zero, Vector3.zero);
+
+        Bounds b = renderers[0].bounds;
+        for (int i = 1; i < renderers.Length; i++)
+            b.Encapsulate(renderers[i].bounds);
+
+        return b;
+    }
+
     bool ApplyCommand(Command cmd, WallAnchor wallAnchor, float startTimeOverride)
     {
         if (cmd == null || string.IsNullOrWhiteSpace(cmd.action)) return false;
@@ -1243,7 +1320,118 @@ public class VoiceCaptureAndSend : MonoBehaviour
                     return true;
                 }
 
-            // ── 5. no_action ─────────────────────────────────────────────
+            // ── 5. scale (deterministic, poster-aware) ───────────────────
+            case "scale":
+                {
+                    if (gazeInteractor == null)
+                        gazeInteractor = FindFirstObjectByType<GazeTargetInteractor>();
+                    if (gazeInteractor == null)
+                    {
+                        Debug.LogError("[VoiceCaptureAndSend] scale: GazeTargetInteractor not in scene.");
+                        return false;
+                    }
+
+                    GameObject targetObj = ResolveDeterministicTarget(cmd);
+                    AIControllable ai = ResolveDeterministicAI(targetObj);
+
+                    if (ai == null)
+                    {
+                        Debug.LogWarning("[VoiceCaptureAndSend] scale: target could not be resolved.");
+                        SetHeaderLine("Target not found.");
+                        return false;
+                    }
+
+                    // Lock exactly this AI target; for posters this resolves to the poster itself,
+                    // never the supporting wall.
+                    gazeInteractor.LockSpecific(ai, fromVoice: true);
+
+                    float factor = cmd.factor > 0.0001f ? cmd.factor : 1f;
+                    gazeInteractor.ScaleGazedBy(factor);
+
+                    Debug.Log("[VoiceCaptureAndSend] deterministic scale x" + factor +
+                              " on '" + ai.name + "'");
+
+                    if (stateStore != null) stateStore.RequestSave();
+                    return true;
+                }
+
+            // ── 6. set_dimensions (absolute metres, poster-aware) ───────────
+            case "set_dimensions":
+                {
+                    if (gazeInteractor == null)
+                        gazeInteractor = FindFirstObjectByType<GazeTargetInteractor>();
+                    if (gazeInteractor == null)
+                    {
+                        Debug.LogError("[VoiceCaptureAndSend] set_dimensions: GazeTargetInteractor not in scene.");
+                        return false;
+                    }
+
+                    GameObject targetObj = ResolveDeterministicTarget(cmd);
+                    AIControllable ai = ResolveDeterministicAI(targetObj);
+
+                    if (ai == null)
+                    {
+                        Debug.LogWarning("[VoiceCaptureAndSend] set_dimensions: target could not be resolved.");
+                        SetHeaderLine("Target not found.");
+                        return false;
+                    }
+
+                    gazeInteractor.LockSpecific(ai, fromVoice: true);
+
+                    PersistablePoster poster = ai.GetComponent<PersistablePoster>();
+
+                    if (poster != null)
+                    {
+                        // Posters have a dedicated real-world metre model.
+                        // Preserve unspecified dimensions.
+                        float width  = cmd.width_m  > 0.0001f ? cmd.width_m  : poster.widthMeters;
+                        float height = cmd.height_m > 0.0001f ? cmd.height_m : poster.heightMeters;
+
+                        Debug.Log(
+                            "[VoiceCaptureAndSend] set_dimensions POSTER '" + ai.name +
+                            "' width=" + width + "m height=" + height + "m"
+                        );
+
+                        // GazeTargetInteractor's poster branch updates widthMeters/heightMeters,
+                        // applies the poster scale locally, saves, and sends poster resize sync.
+                        gazeInteractor.SetScaleXYZOnGazed(width, height, 1f);
+                    }
+                    else
+                    {
+                        // Normal wall / generated 3D object:
+                        // convert requested WORLD dimensions to multiplicative localScale ratios.
+                        Bounds b = GetCombinedRendererBounds(ai.gameObject);
+                        Vector3 currentWorldSize = b.size;
+                        Vector3 newLocalScale = ai.transform.localScale;
+
+                        if (cmd.width_m > 0.0001f && currentWorldSize.x > 0.0001f)
+                            newLocalScale.x *= cmd.width_m / currentWorldSize.x;
+
+                        if (cmd.height_m > 0.0001f && currentWorldSize.y > 0.0001f)
+                            newLocalScale.y *= cmd.height_m / currentWorldSize.y;
+
+                        if (cmd.depth_m > 0.0001f && currentWorldSize.z > 0.0001f)
+                            newLocalScale.z *= cmd.depth_m / currentWorldSize.z;
+
+                        Debug.Log(
+                            "[VoiceCaptureAndSend] set_dimensions OBJECT '" + ai.name +
+                            "' worldBefore=" + currentWorldSize +
+                            " localScaleAfter=" + newLocalScale
+                        );
+
+                        // This uses the normal object sync path in GazeTargetInteractor.
+                        gazeInteractor.SetScaleXYZOnGazed(
+                            newLocalScale.x,
+                            newLocalScale.y,
+                            newLocalScale.z
+                        );
+                    }
+
+                    if (stateStore != null) stateStore.RequestSave();
+                    return true;
+                }
+
+            // ── 7. no_action ─────────────────────────────────────────────
             case "no_action":
                 SetIntentClean(cmd);
                 SetStatusText("No action needed.");

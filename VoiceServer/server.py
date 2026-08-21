@@ -1,4 +1,4 @@
-# =========================
+﻿# =========================
 # LLM-DRIVEN XR SERVER
 # No keywords — pure natural language -> LLM -> Unity commands
 # Includes: Meshy.ai 3D generation, OpenAI image/texture generation
@@ -21,6 +21,11 @@ import uuid as _uuid
 load_dotenv()
 
 app = FastAPI()
+
+SERVER_VERSION = "SCALING_V3"
+print("===================================")
+print("SERVER VERSION:", SERVER_VERSION)
+print("===================================")
 
 # =========================
 # CONFIG
@@ -124,7 +129,7 @@ CRITICAL: If you output ANYTHING other than a raw JSON object, the entire pipeli
    - This is the PRIMARY and DEFAULT action for EVERY actionable XR request that is NOT poster generation, texture generation, or 3D model generation.
    - It generates and attaches a C# script at runtime.
    - Use it for ALL of the following (and anything else not covered by the three actions above):
-     movement, rotation, scaling, color changes, duplication-like behaviours, particles,
+     movement, rotation, color changes, duplication-like behaviours, particles,
      animation, interaction, effects, procedural logic, following, constraints, stacking,
      placement, lighting, deletion, spawning primitives, physics, UI, audio, and any
      other Unity behaviour whatsoever.
@@ -135,7 +140,37 @@ CRITICAL: If you output ANYTHING other than a raw JSON object, the entire pipeli
      - "relation": optional relation string or null
      - "behaviour_prompt": concise but implementation-oriented instruction for generated Unity C# code
 
-5. no_action
+5. scale
+   - Use ONLY for proportional resize / grow / shrink:
+     "make this bigger", "double the size", "make it half as big", "make the poster larger".
+   - NEVER use run_code for resizing.
+   - Required fields:
+     - "factor": multiplicative factor. >1 grows, <1 shrinks.
+   - Map language to factor: slightly bigger -> 1.2, bigger -> 1.5, much bigger/double -> 2.0,
+     slightly smaller -> 0.8, smaller -> 0.6, half -> 0.5.
+   - Optional "targets": exact selected object name. If omitted Unity uses the locked selection.
+
+6. set_dimensions
+   - Use for ABSOLUTE requested dimensions in meters.
+   - NEVER use run_code for this.
+   - Use when the user says things like:
+     "make this poster 5 by 5 meters",
+     "set this poster to 3 x 2 meters",
+     "increase the height of this poster to 3 meters",
+     "set the width to 4 meters".
+   - Required:
+     - "targets": array containing the exact object name when available.
+   - Optional numeric fields (omit dimensions the user did not specify):
+     - "width_m"
+     - "height_m"
+     - "depth_m"
+   - For posters, width_m and height_m are the poster's real world dimensions.
+   - A poster is independent from its parent wall: resize ONLY the poster object, NEVER its parent wall.
+   - Examples:
+     "make this poster 5x5" -> {"action":"set_dimensions","targets":["Poster_123"],"width_m":5.0,"height_m":5.0}
+     "increase the height of this poster to 3 meters" -> {"action":"set_dimensions","targets":["Poster_123"],"height_m":3.0}
+
+7. no_action
    - Use when the input is purely conversational, unclear, or no XR action should happen.
 
 === OUTPUT FORMAT ===
@@ -186,9 +221,35 @@ Resolution rules (apply in order):
 - Use generate_model ONLY for generating new 3D objects/models from text.
 - Use create_poster ONLY for poster/image generation.
 - Use set_wall_texture ONLY for texture generation/application.
+- For proportional resize / grow / shrink requests, use scale (NOT run_code).
+- For absolute width / height / depth / meter dimension requests, use set_dimensions (NOT run_code).
+- NEVER use run_code for any resize, scale, size, width, height, depth, or dimension change.
 - For EVERY other actionable XR instruction, use run_code.
-- NEVER return translate, scale, set_color, rotate, delete_object, duplicate_object, spawn_primitive, set_lighting, or any action name not listed above.
+- NEVER return translate, set_color, rotate, delete_object, duplicate_object, spawn_primitive, set_lighting, or any action name not listed above.
 - Output ONLY raw JSON.
+
+=== RESIZE / DIMENSION RULES ===
+- Resizing existing objects MUST be deterministic.
+- NEVER put resize logic into behaviour_prompt.
+- NEVER generate C# that edits localScale for a resize request.
+- If the request gives a factor ("twice", "half", "bigger"), use scale.
+- If the request gives absolute dimensions ("3 meters high", "5x5", "3 by 2 meters"), use set_dimensions.
+- If only one absolute dimension is specified, send only that field and preserve the other dimensions.
+- If GAZE_TARGET is a Poster_* object, that exact Poster_* object is the resize target.
+- NEVER substitute the poster's parent wall as the target.
+
+Examples:
+User: "make this poster 3 by 3 meters"
+GAZE_TARGET: "Poster_192040"
+{"commands":[{"action":"set_dimensions","targets":["Poster_192040"],"width_m":3.0,"height_m":3.0}]}
+
+User: "increase the height of this poster to 3 meters"
+GAZE_TARGET: "Poster_192040"
+{"commands":[{"action":"set_dimensions","targets":["Poster_192040"],"height_m":3.0}]}
+
+User: "make this chair twice as big"
+GAZE_TARGET: "Generated_Chair"
+{"commands":[{"action":"scale","targets":["Generated_Chair"],"factor":2.0}]}
 
 === run_code SCHEMA ===
 Each run_code command must use:
@@ -258,6 +319,14 @@ GAZE_TARGET: "Wall_1"
 User: "add smoke to this"
 GAZE_TARGET: "Barrel_01"
 {"commands":[{"action":"run_code","targets":["Barrel_01"],"reference_objects":[],"relation":null,"behaviour_prompt":"on Start, create a child GameObject on Barrel_01, add and configure a looping smoke ParticleSystem directly in code, place it near the top center of Barrel_01 using renderer bounds, and call Play immediately; do not require any prefab or inspector assignment"}]}
+
+User: "make this poster 3 by 3 meters"
+GAZE_TARGET: "Poster_192040"
+{"commands":[{"action":"set_dimensions","targets":["Poster_192040"],"width_m":3.0,"height_m":3.0}]}
+
+User: "set the height of this poster to 3 meters"
+GAZE_TARGET: "Poster_192040"
+{"commands":[{"action":"set_dimensions","targets":["Poster_192040"],"height_m":3.0}]}
 
 User: "make a poster of a snowy mountain landscape"
 {"commands":[{"action":"create_poster","image_prompt":"snowy mountain landscape","width_m":1.5,"height_m":1.0}]}
@@ -738,6 +807,15 @@ def _print_llm_debug(transcript: str, gaze_target: str, commands: list, reasonin
         elif action == "set_wall_texture":
             print(f"Texture Prompt: {cmd.get('texture_prompt', '')}")
             print()
+        elif action == "set_dimensions":
+            print(
+                f"Dimensions: width_m={cmd.get('width_m')} "
+                f"height_m={cmd.get('height_m')} depth_m={cmd.get('depth_m')}"
+            )
+            print()
+        elif action == "scale":
+            print(f"Scale Factor: {cmd.get('factor')}")
+            print()
         else:
             print(f"Behaviour Prompt: {behaviour_prompt}")
             print()
@@ -904,6 +982,130 @@ def vision_describe(screenshots_b64: list[str], transcript: str, scene_object_na
         return ""
 
 
+
+def _rewrite_resize_commands(commands: list, transcript: str, gaze_target: str = "none") -> list:
+    """
+    Safety net: if the LLM accidentally returns run_code for a resize request,
+    convert it into deterministic scale/set_dimensions before Unity sees it.
+    """
+    if not isinstance(commands, list):
+        return commands
+
+    text = (transcript or "").strip().lower()
+    resize_words = (
+        "resize", "scale", "size", "bigger", "larger", "smaller", "shrink",
+        "width", "height", "depth", "wide", "high", "tall", "meter", "metre",
+        " x ", " by "
+    )
+
+    if not any(w in text for w in resize_words):
+        return commands
+
+    def target_for(cmd):
+        targets = cmd.get("targets") if isinstance(cmd, dict) else None
+        if isinstance(targets, list) and targets:
+            return targets[0]
+        if gaze_target and gaze_target.lower() != "none":
+            return gaze_target
+        return None
+
+    # Explicit WxH: "3 by 3", "5x5", "5 x 5"
+    pair = re.search(
+        r'(\d+(?:\.\d+)?)\s*(?:m(?:eters?|etres?)?\s*)?(?:x|×|by)\s*'
+        r'(\d+(?:\.\d+)?)\s*(?:m(?:eters?|etres?)?)?',
+        text
+    )
+
+    # Absolute single dimensions: "... height ... to 3 meters"
+    height = re.search(
+        r'(?:height|high|tall)\D{0,30}?(?:to|=|is|of)?\s*(\d+(?:\.\d+)?)\s*(?:m|meter|meters|metre|metres)?',
+        text
+    )
+    width = re.search(
+        r'(?:width|wide)\D{0,30}?(?:to|=|is|of)?\s*(\d+(?:\.\d+)?)\s*(?:m|meter|meters|metre|metres)?',
+        text
+    )
+    depth = re.search(
+        r'(?:depth|deep)\D{0,30}?(?:to|=|is|of)?\s*(\d+(?:\.\d+)?)\s*(?:m|meter|meters|metre|metres)?',
+        text
+    )
+
+    # Proportional expressions.
+    factor = None
+    if re.search(r'\b(?:double|twice|2x)\b', text):
+        factor = 2.0
+    elif re.search(r'\b(?:half|half-size|half size)\b', text):
+        factor = 0.5
+    elif re.search(r'\bslightly\s+(?:bigger|larger)\b', text):
+        factor = 1.2
+    elif re.search(r'\b(?:bigger|larger|grow)\b', text):
+        factor = 1.5
+    elif re.search(r'\bslightly\s+(?:smaller|shrink)\b', text):
+        factor = 0.8
+    elif re.search(r'\b(?:smaller|shrink)\b', text):
+        factor = 0.6
+
+    rewritten = []
+    for cmd in commands:
+        if not isinstance(cmd, dict):
+            rewritten.append(cmd)
+            continue
+
+        action = (cmd.get("action") or "").strip().lower()
+
+        # Preserve already-correct deterministic commands.
+        if action in {"scale", "set_dimensions"}:
+            rewritten.append(cmd)
+            continue
+
+        # Only rewrite action commands that might otherwise mutate scale via generated code.
+        if action != "run_code":
+            rewritten.append(cmd)
+            continue
+
+        target = target_for(cmd)
+        targets = [target] if target else []
+
+        if pair:
+            rewritten.append({
+                "action": "set_dimensions",
+                "targets": targets,
+                "width_m": float(pair.group(1)),
+                "height_m": float(pair.group(2)),
+            })
+            continue
+
+        dims = {}
+        if width:
+            dims["width_m"] = float(width.group(1))
+        if height:
+            dims["height_m"] = float(height.group(1))
+        if depth:
+            dims["depth_m"] = float(depth.group(1))
+
+        if dims:
+            rewritten.append({
+                "action": "set_dimensions",
+                "targets": targets,
+                **dims,
+            })
+            continue
+
+        if factor is not None:
+            rewritten.append({
+                "action": "scale",
+                "targets": targets,
+                "factor": factor,
+            })
+            continue
+
+        # Resize language was detected but values were not parseable.
+        # Keep the original rather than guessing.
+        rewritten.append(cmd)
+
+    return rewritten
+
+
 def llm_decide(transcript: str, gaze_target: str = "none", vision_context: str = "", scene_object_names: list = None) -> dict:
     if not transcript:
         return {"commands": [{"action": "no_action", "reason": "empty transcript"}]}
@@ -941,6 +1143,13 @@ def llm_decide(transcript: str, gaze_target: str = "none", vision_context: str =
 
         raw = response.choices[0].message.content.strip()
         parsed = extract_json(raw)
+
+        commands = parsed.get("commands", [])
+        rewritten = _rewrite_resize_commands(commands, transcript, gaze_target)
+        if rewritten != commands:
+            print("[Resize safety] Rewrote LLM resize command:", json.dumps(rewritten), flush=True)
+        parsed["commands"] = rewritten
+
         reasoning = _commands_to_sentence(parsed.get("commands", []))
         return {**parsed, "_reasoning": reasoning}
 
@@ -1079,6 +1288,29 @@ def _build_command_summary(cmd: dict, gaze_target: str = "") -> str:
 
         # Fallback: compact behaviour prompt, but still one line.
         return f"Action: {behaviour}"
+
+    if action == "set_dimensions":
+        w = cmd.get("width_m")
+        h = cmd.get("height_m")
+        d = cmd.get("depth_m")
+        parts = []
+        if w is not None: parts.append(f"width {w} m")
+        if h is not None: parts.append(f"height {h} m")
+        if d is not None: parts.append(f"depth {d} m")
+        detail = ", ".join(parts)
+        return f"Resize{target_suffix}" + (f" to {detail}" if detail else "")
+
+    if action == "scale":
+        f = cmd.get("factor")
+        try:
+            f = float(f)
+        except (TypeError, ValueError):
+            f = None
+        if f is not None and f < 1:
+            return f"Shrink{target_suffix}"
+        if f is not None and f > 1:
+            return f"Enlarge{target_suffix}"
+        return f"Resize{target_suffix}"
 
     if action == "no_action":
         return "No action"

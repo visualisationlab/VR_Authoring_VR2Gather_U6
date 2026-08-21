@@ -19,4 +19,7 @@ public static class AIMessageTypeID
 
     public static readonly MessageTypeID TID_AISelectionSyncMessage =
     (MessageTypeID)1006;
+
+    public static readonly MessageTypeID TID_AIPosterResizeMessage =
+    (MessageTypeID)1007;
 }

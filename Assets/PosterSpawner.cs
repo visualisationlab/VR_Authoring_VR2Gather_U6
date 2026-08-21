@@ -179,22 +179,59 @@ public class PosterSpawner : MonoBehaviour
     // Scale utility — used by both CreatePosterCoroutine and SceneStateStore.
     // Must be called AFTER parenting so lossyScale is correct.
     // -------------------------------------------------------------------------
-    public void ApplyWorldSizeToPoster(Transform posterTransform, float widthMeters, float heightMeters)
+    public void ApplyWorldSizeToPoster(
+    Transform posterTransform,
+    float widthMeters,
+    float heightMeters)
     {
+        if (posterTransform == null)
+            return;
+
         widthMeters = Mathf.Max(0.01f, widthMeters);
         heightMeters = Mathf.Max(0.01f, heightMeters);
 
-        Vector3 parentLossy = posterTransform.parent != null
-            ? posterTransform.parent.lossyScale
-            : Vector3.one;
+        if (posterTransform.parent == null)
+        {
+            posterTransform.localScale =
+                new Vector3(widthMeters, heightMeters, 1f);
 
-        float safeX = Mathf.Abs(parentLossy.x) > 0.0001f ? Mathf.Abs(parentLossy.x) : 1f;
-        float safeY = Mathf.Abs(parentLossy.y) > 0.0001f ? Mathf.Abs(parentLossy.y) : 1f;
+            return;
+        }
+
+        Transform parent = posterTransform.parent;
+
+        Vector3 rightInParent =
+            posterTransform.localRotation * Vector3.right;
+
+        Vector3 upInParent =
+            posterTransform.localRotation * Vector3.up;
+
+        float worldPerLocalX =
+            parent.TransformVector(rightInParent).magnitude;
+
+        float worldPerLocalY =
+            parent.TransformVector(upInParent).magnitude;
+
+        worldPerLocalX =
+            Mathf.Max(worldPerLocalX, 0.0001f);
+
+        worldPerLocalY =
+            Mathf.Max(worldPerLocalY, 0.0001f);
 
         posterTransform.localScale = new Vector3(
-            widthMeters / safeX,
-            heightMeters / safeY,
+            widthMeters / worldPerLocalX,
+            heightMeters / worldPerLocalY,
             1f
         );
+
+        if (logSizes)
+        {
+            Debug.Log(
+                $"[PosterSpawner] SIZE requested=" +
+                $"{widthMeters:0.###}x{heightMeters:0.###}m " +
+                $"localScale={posterTransform.localScale} " +
+                $"lossyScale={posterTransform.lossyScale}"
+            );
+        }
     }
 }
