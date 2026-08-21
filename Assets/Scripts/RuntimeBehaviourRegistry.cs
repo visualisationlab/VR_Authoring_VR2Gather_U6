@@ -27,8 +27,8 @@ public class RuntimeBehaviourRegistry : MonoBehaviour
     public bool logResults = true;
 
     [Header("Roslyn")]
-    [Tooltip("Folder containing Microsoft.CodeAnalysis*.dll and related Roslyn dependencies.")]
-    public string roslynFolder = @"C:\Users\Ashutosh\Desktop\Work\0_UvA\0_Unity_Projects\Unity-Roslyn";
+    [Tooltip("Automatically resolved Unity-Roslyn folder.")]
+    public string roslynFolder;
 
     [Serializable]
     class BehaviourRecord
@@ -55,6 +55,32 @@ public class RuntimeBehaviourRegistry : MonoBehaviour
         }
 
         Instance = this;
+
+        // Current Unity project:
+        // ...\0_Unity_Projects\VR2Gather_Unity6
+        string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+
+        // Parent folder:
+        // ...\0_Unity_Projects
+        string projectsRoot = Directory.GetParent(projectRoot).FullName;
+
+        // Roslyn folder:
+        // ...\0_Unity_Projects\Unity-Roslyn
+        roslynFolder = Path.Combine(projectsRoot, "Unity-Roslyn");
+
+        if (!Directory.Exists(roslynFolder))
+        {
+            Debug.LogError(
+                $"[Registry] Unity-Roslyn folder not found: {roslynFolder}"
+            );
+        }
+        else if (logResults)
+        {
+            Debug.Log(
+                $"[Registry] Unity-Roslyn automatically found: {roslynFolder}"
+            );
+        }
+
         Directory.CreateDirectory(ScriptsDir);
     }
 
