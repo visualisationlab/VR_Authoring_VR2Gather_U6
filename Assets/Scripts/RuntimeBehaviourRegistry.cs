@@ -659,22 +659,49 @@ public class RuntimeBehaviourRegistry : MonoBehaviour
     /// </summary>
     static GameObject ResolveRootTarget(GameObject go)
     {
-        if (go == null) return go;
+        if (go == null)
+            return null;
 
-        // Prefer PersistableAIObject in parent chain
+        // ============================================================
+        // POSTER SPECIAL CASE
+        // Posters are independent action targets even though they are
+        // parented under a wall.
+        //
+        // MOVE / DELETE / ROTATE / RESIZE must affect ONLY the poster.
+        // NEVER promote a poster to its wall/building parent.
+        // ============================================================
+        PersistablePoster poster = go.GetComponent<PersistablePoster>();
+
+        if (poster == null)
+            poster = go.GetComponentInParent<PersistablePoster>();
+
+        if (poster != null)
+        {
+            Debug.Log(
+                $"[Registry] Poster target preserved: '{poster.gameObject.name}'"
+            );
+
+            return poster.gameObject;
+        }
+
+        // ============================================================
+        // NORMAL OBJECTS
+        // Generated models / buildings / etc. can still resolve to
+        // their PersistableAIObject root.
+        // ============================================================
         var persist = go.GetComponentInParent<PersistableAIObject>();
-        if (persist != null) return persist.gameObject;
 
-        // Otherwise walk to the topmost parent that isn't the scene root
-        Transform t = go.transform;
-        while (t.parent != null)
-            t = t.parent;
+        if (persist != null)
+            return persist.gameObject;
 
-        // t is now the scene-root object — return our original go's top-level child
-        // i.e. the direct child of the scene root, or go itself if it is that child.
+        // Otherwise walk upward as before.
         Transform target = go.transform;
-        while (target.parent != null && target.parent.parent != null)
+
+        while (target.parent != null &&
+               target.parent.parent != null)
+        {
             target = target.parent;
+        }
 
         return target.gameObject;
     }

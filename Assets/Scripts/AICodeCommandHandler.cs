@@ -40,6 +40,23 @@ public class AICodeCommandHandler : MonoBehaviour
         "Write code as if it will be attached directly to that object " +
         "(use 'this.gameObject' or 'transform' to refer to it). " +
         "Reply with ONLY a single fenced ```csharp code block. Rules:\n" +
+        "  TARGET OWNERSHIP RULES — CRITICAL:\n" +
+        "  - The TARGET object is ALWAYS the GameObject this generated script is attached to.\n" +
+        "  - MOVE commands must move ONLY this.transform.\n" +
+        "  - ROTATE commands must rotate ONLY this.transform.\n" +
+        "  - DELETE commands must destroy ONLY this.gameObject.\n" +
+        "  - NEVER move, rotate, scale, disable, or destroy transform.parent.\n" +
+        "  - NEVER move, rotate, scale, disable, or destroy transform.root.\n" +
+        "  - NEVER replace the action target using GetComponentInParent().\n" +
+        "  - A parent may be used only as spatial/context information, NEVER as the action target.\n" +
+        "  POSTER RULES — CRITICAL:\n" +
+        "  - Poster objects are independent objects even when parented under a wall.\n" +
+        "  - If TARGET is a Poster, MOVE affects ONLY the Poster.\n" +
+        "  - If TARGET is a Poster, DELETE destroys ONLY the Poster GameObject.\n" +
+        "  - If TARGET is a Poster, ROTATE affects ONLY the Poster.\n" +
+        "  - NEVER move, delete, rotate, or resize the wall/building because a Poster is its child.\n" +
+        "  - For deleting the TARGET use Destroy(this.gameObject).\n" +
+        "  - For moving the TARGET modify transform.position or transform.Translate().\n" +
         "  - Particle effects must respect realistic room-scale size suitable for XR environments.\n" +
         "    Default particle sizes should be small and subtle unless the user explicitly requests large effects.\n" +
         "    Use startSize typically in the range of 0.02 to 0.2 units.\n" +

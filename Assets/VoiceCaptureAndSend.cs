@@ -1268,54 +1268,98 @@ public class VoiceCaptureAndSend : MonoBehaviour
                 {
                     if (AICodeCommandHandler.Instance == null)
                     {
-                        Debug.LogError("[VoiceCaptureAndSend] run_code: AICodeCommandHandler not in scene.");
+                        Debug.LogError(
+                            "[VoiceCaptureAndSend] run_code: AICodeCommandHandler not in scene."
+                        );
+
                         return false;
                     }
 
-                    string behaviourPrompt = string.IsNullOrWhiteSpace(cmd.behaviour_prompt)
-                        ? "make this object rotate slowly"
-                        : cmd.behaviour_prompt;
+                    string behaviourPrompt =
+                        string.IsNullOrWhiteSpace(cmd.behaviour_prompt)
+                            ? "make this object rotate slowly"
+                            : cmd.behaviour_prompt;
 
-                    GameObject resolvedTarget = null;
+                    // ============================================================
+                    // Resolve target using the SAME deterministic logic used for
+                    // scaling. This is poster-aware.
+                    // ============================================================
+                    GameObject targetObj = ResolveDeterministicTarget(cmd);
 
-                    // 1. Prefer exact target from LLM
-                    if (cmd.targets != null && cmd.targets.Length > 0 && !string.IsNullOrWhiteSpace(cmd.targets[0]))
+                    if (targetObj == null)
                     {
-                        resolvedTarget = FindGameObjectCaseInsensitive(cmd.targets[0]);
-                    }
+                        Debug.LogWarning(
+                            "[VoiceCaptureAndSend] run_code: target could not be resolved."
+                        );
 
-                    // 2. Fallback to single target field
-                    if (resolvedTarget == null && !string.IsNullOrWhiteSpace(cmd.target))
-                    {
-                        resolvedTarget = FindGameObjectCaseInsensitive(cmd.target);
-                    }
-
-                    // 3. Fallback to frozen target captured at stop-recording
-                    if (resolvedTarget == null && !string.IsNullOrWhiteSpace(_capturedTargetNameAtStop))
-                    {
-                        resolvedTarget = FindGameObjectCaseInsensitive(_capturedTargetNameAtStop);
-                    }
-
-                    if (resolvedTarget == null)
-                    {
-                        Debug.LogWarning("[VoiceCaptureAndSend] run_code: target could not be resolved.");
                         SetHeaderLine("Target not found.");
                         return false;
                     }
 
-                    Debug.Log($"[VoiceCaptureAndSend] run_code attaching to '{resolvedTarget.name}'");
-                    AICodeCommandHandler.Instance.HandleRunCode(behaviourPrompt,
-                                                                resolvedTarget,
-                                                                effectId: System.Guid.NewGuid().ToString(),
-                                                                isReplay: false
-                                                                );
+                    // ============================================================
+                    // IMPORTANT:
+                    // ResolveDeterministicAI() knows that a poster wins over
+                    // its parent wall.
+                    // ============================================================
+                    AIControllable ai = ResolveDeterministicAI(targetObj);
+
+                    GameObject resolvedTarget;
+
+                    if (ai != null)
+                    {
+                        // Exact AIControllable object.
+                        // For posters this WILL BE Poster_xxx.
+                        resolvedTarget = ai.gameObject;
+                    }
+                    else
+                    {
+                        resolvedTarget = targetObj;
+                    }
+
+                    // ============================================================
+                    // FINAL POSTER SAFETY CHECK
+                    // If target is a poster or anything inside a poster,
+                    // force the poster itself to be the target.
+                    // ============================================================
+                    PersistablePoster poster =
+                        resolvedTarget.GetComponent<PersistablePoster>();
+
+                    if (poster == null)
+                        poster =
+                            resolvedTarget.GetComponentInParent<PersistablePoster>();
+
+                    if (poster != null)
+                    {
+                        resolvedTarget = poster.gameObject;
+
+                        Debug.Log(
+                            $"[VoiceCaptureAndSend] POSTER target locked to " +
+                            $"'{resolvedTarget.name}'. Parent will NOT be modified."
+                        );
+                    }
+
+                    Debug.Log(
+                        $"[VoiceCaptureAndSend] run_code attaching to " +
+                        $"EXACT target '{resolvedTarget.name}'"
+                    );
+
+                    AICodeCommandHandler.Instance.HandleRunCode(
+                        behaviourPrompt,
+                        resolvedTarget,
+                        effectId: System.Guid.NewGuid().ToString(),
+                        isReplay: false
+                    );
 
                     if (modelSpawner != null)
-                        modelSpawner.SaveBehaviourPrompt(resolvedTarget.name, behaviourPrompt);
+                    {
+                        modelSpawner.SaveBehaviourPrompt(
+                            resolvedTarget.name,
+                            behaviourPrompt
+                        );
+                    }
+
                     if (stateStore != null)
                         stateStore.RequestSave();
-
-                    // Keep the clean intent text already shown in the dialog.
 
                     return true;
                 }
