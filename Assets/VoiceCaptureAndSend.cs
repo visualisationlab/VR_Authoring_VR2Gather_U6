@@ -73,6 +73,13 @@ public class VoiceCaptureAndSend : MonoBehaviour
     [Tooltip("Keep UI visible in editor/solo mode when VR2Gather Comm is not available yet.")]
     public bool showFeedbackIfCommUnavailable = true;
 
+    [Header("Logging")]
+    [Tooltip("Enable detailed diagnostic logs. Keep this OFF during experiments for a clean Console.")]
+    public bool verboseLogging = false;
+
+    [Tooltip("Save one CSV latency log per Unity run/session.")]
+    public bool saveLatencyCsv = true;
+
     // ─────────────────────────────────────────────────────────────────────────
     // Private state
     // ─────────────────────────────────────────────────────────────────────────
@@ -91,6 +98,162 @@ public class VoiceCaptureAndSend : MonoBehaviour
     private string _currentActionLabel = "";
     private bool   _showPercentForCurrentAction = false;   // Only true for 3D model generation
     private int    _lastCleanProgressPercent = 0;
+
+    // run_code completes asynchronously inside AICodeCommandHandler.
+    // Keep the clean timer alive until all run_code requests for the current voice command finish.
+    private int  _pendingRunCodeActions = 0;
+    private bool _runCodeBatchFailed = false;
+
+    // Latency logging. One CSV file is created lazily per Unity run/session.
+    private string _latencyFilePath = null;
+
+    private class LatencyContext
+    {
+        public int    commandId;
+        public string transcript;
+        public string action;
+        public string target;
+        public float  requestStartTime;
+        public long   unityPrepareMs;
+        public long   httpRoundtripMs;
+        public long   confirmationWaitMs;
+        public long   dispatchMs;
+        // Time from execution start (after confirmation, if any) until the action really finishes.
+        // For poster/model/texture this includes the long-running generation/application work.
+        public long   actionExecutionMs;
+        public int    whisperMs;
+        public int    visionMs;
+        public int    llmMs;
+        public int    serverOverheadMs;
+        public int    serverTotalMs;
+    }
+
+    private LatencyContext _currentLatency = null;
+
+    private void VerboseLog(string message)
+    {
+        if (verboseLogging)
+            Debug.Log(message);
+    }
+
+    private string CsvEscape(string value)
+    {
+        if (value == null) return "\"\"";
+        return "\"" + value.Replace("\"", "\"\"") + "\"";
+    }
+
+    private void EnsureLatencyFile()
+    {
+        if (!saveLatencyCsv || !string.IsNullOrEmpty(_latencyFilePath)) return;
+
+        string folder = Path.Combine(Application.persistentDataPath, "LatencyLogs");
+        Directory.CreateDirectory(folder);
+
+        string fileName = "latency_" + System.DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss") + ".csv";
+        _latencyFilePath = Path.Combine(folder, fileName);
+
+        string header =
+            "timestamp,command_id,transcript,action,target," +
+            "whisper_ms,vision_ms,llm_ms,server_overhead_ms,server_total_ms," +
+            "unity_prepare_ms,http_roundtrip_ms,network_plus_transport_overhead_ms," +
+            "confirmation_wait_ms,dispatch_ms,action_execution_ms,end_to_end_ms,success,status\n";
+
+        File.WriteAllText(_latencyFilePath, header, Encoding.UTF8);
+        Debug.Log("[LATENCY] CSV: " + _latencyFilePath);
+    }
+
+    private string GetLatencyTarget(Command cmd, WallAnchor wallAnchor)
+    {
+        if (cmd != null)
+        {
+            if (cmd.targets != null && cmd.targets.Length > 0 && !string.IsNullOrWhiteSpace(cmd.targets[0]))
+                return cmd.targets[0];
+            if (!string.IsNullOrWhiteSpace(cmd.target))
+                return cmd.target;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_capturedTargetNameAtStop))
+            return _capturedTargetNameAtStop;
+        if (wallAnchor.IsValid() && wallAnchor.wall != null)
+            return wallAnchor.wall.name;
+        return "none";
+    }
+
+    private void SetCurrentDispatchLatency(float dispatchStartTime)
+    {
+        if (_currentLatency == null) return;
+        _currentLatency.dispatchMs = (long)Mathf.Max(
+            0f,
+            (Time.realtimeSinceStartup - dispatchStartTime) * 1000f
+        );
+    }
+
+    private void FinalizeLatencyLog(bool success, string status)
+    {
+        if (_currentLatency == null) return;
+
+        long endToEndMs = (long)Mathf.Max(
+            0f,
+            (Time.realtimeSinceStartup - _currentLatency.requestStartTime) * 1000f
+        );
+
+        long transportOverheadMs = Mathf.Max(
+            0,
+            (int)(_currentLatency.httpRoundtripMs - _currentLatency.serverTotalMs)
+        );
+
+        Debug.Log(
+            $"[LATENCY] STT={_currentLatency.whisperMs} ms | " +
+            $"Vision={_currentLatency.visionMs} ms | " +
+            $"LLM={_currentLatency.llmMs} ms | " +
+            $"Server={_currentLatency.serverTotalMs} ms | " +
+            $"HTTP={_currentLatency.httpRoundtripMs} ms | " +
+            $"Confirm={_currentLatency.confirmationWaitMs} ms | " +
+            $"Dispatch={_currentLatency.dispatchMs} ms | " +
+            $"Action={_currentLatency.actionExecutionMs} ms | " +
+            $"Total={endToEndMs} ms"
+        );
+
+        Debug.Log(success
+            ? $"[SUCCESS] {_currentLatency.action} | target={_currentLatency.target}"
+            : $"[FAIL] {_currentLatency.action} | target={_currentLatency.target} | {status}");
+
+        if (saveLatencyCsv)
+        {
+            try
+            {
+                EnsureLatencyFile();
+                string line = string.Join(",",
+                    CsvEscape(System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")),
+                    _currentLatency.commandId.ToString(),
+                    CsvEscape(_currentLatency.transcript),
+                    CsvEscape(_currentLatency.action),
+                    CsvEscape(_currentLatency.target),
+                    _currentLatency.whisperMs.ToString(),
+                    _currentLatency.visionMs.ToString(),
+                    _currentLatency.llmMs.ToString(),
+                    _currentLatency.serverOverheadMs.ToString(),
+                    _currentLatency.serverTotalMs.ToString(),
+                    _currentLatency.unityPrepareMs.ToString(),
+                    _currentLatency.httpRoundtripMs.ToString(),
+                    transportOverheadMs.ToString(),
+                    _currentLatency.confirmationWaitMs.ToString(),
+                    _currentLatency.dispatchMs.ToString(),
+                    _currentLatency.actionExecutionMs.ToString(),
+                    endToEndMs.ToString(),
+                    success ? "1" : "0",
+                    CsvEscape(status)
+                );
+                File.AppendAllText(_latencyFilePath, line + System.Environment.NewLine, Encoding.UTF8);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError("[LATENCY] Failed to write CSV: " + e.Message);
+            }
+        }
+
+        _currentLatency = null;
+    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Job tracker
@@ -192,7 +355,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
         // Actual action jobs stop the clean UI when they finish.
         if (_isExecutingCleanAction && finishedType != "voice")
         {
-            StopCleanExecutionProgress(ok ? "Action completed" : "Action failed");
+            StopCleanExecutionProgress(ok ? "Action completed" : "Action failed", ok);
         }
 
         RefreshJobsUI();
@@ -394,11 +557,12 @@ public class VoiceCaptureAndSend : MonoBehaviour
 
         string action = cmd.action.Trim().ToLowerInvariant();
 
-        // These actions finish later in their own coroutine.
-        // run_code usually dispatches immediately.
+        // These actions finish asynchronously. For run_code, HandleRunCode() starts
+        // a GPT/compile coroutine and reports completion through a callback.
         return action == "generate_model" ||
                action == "create_poster" ||
-               action == "set_wall_texture";
+               action == "set_wall_texture" ||
+               action == "run_code";
     }
 
 
@@ -408,6 +572,8 @@ public class VoiceCaptureAndSend : MonoBehaviour
         _executionStartTime = Time.realtimeSinceStartup;
         _isExecutingCleanAction = true;
         _lastCleanProgressPercent = 0;
+        _pendingRunCodeActions = 0;
+        _runCodeBatchFailed = false;
 
         // Percentage is only meaningful for Meshy / 3D generation jobs.
         // For all other commands we only show elapsed time.
@@ -420,23 +586,68 @@ public class VoiceCaptureAndSend : MonoBehaviour
         UpdateCleanExecutionProgress();
     }
 
-    private void StopCleanExecutionProgress(string finalLabel = null)
+    private void OnRunCodeCompleted(int commandId, bool success)
+    {
+        // Ignore stale callbacks from an older command.
+        if (_currentLatency == null || _currentLatency.commandId != commandId)
+            return;
+
+        if (!success)
+            _runCodeBatchFailed = true;
+
+        _pendingRunCodeActions = Mathf.Max(0, _pendingRunCodeActions - 1);
+
+        // A voice command can theoretically contain more than one run_code action.
+        // Stop the timer only after all of them have completed.
+        if (_pendingRunCodeActions == 0 && _isExecutingCleanAction)
+        {
+            bool overallSuccess = !_runCodeBatchFailed;
+            StopCleanExecutionProgress(
+                overallSuccess ? "Action completed" : "Action failed",
+                overallSuccess
+            );
+        }
+    }
+
+    private void StopCleanExecutionProgress(string finalLabel = null, bool success = true)
     {
         if (!_isExecutingCleanAction && string.IsNullOrWhiteSpace(_currentActionLabel))
+        {
+            // A latency context can still exist for cancellation / no-action paths.
+            if (_currentLatency != null)
+                FinalizeLatencyLog(success, string.IsNullOrWhiteSpace(finalLabel) ? "finished" : finalLabel);
             return;
+        }
 
         float elapsed = Mathf.Max(0f, Time.realtimeSinceStartup - _executionStartTime);
         string label = string.IsNullOrWhiteSpace(finalLabel) ? _currentActionLabel : finalLabel;
+
+        // Save the real action duration before FinalizeLatencyLog writes the CSV row.
+        // This timer starts in StartCleanExecutionProgress():
+        //   - after the user presses Execute for confirmed commands, or
+        //   - immediately before dispatch for commands without confirmation.
+        // For async poster/model/texture jobs, this method is called only when their
+        // FinishJob() runs, so the full generation/application time is captured.
+        if (_currentLatency != null)
+        {
+            _currentLatency.actionExecutionMs = (long)Mathf.Max(0f, elapsed * 1000f);
+        }
 
         bool showPercent = _showPercentForCurrentAction;
 
         _isExecutingCleanAction = false;
         _showPercentForCurrentAction = false;
+        _currentActionLabel = "";
+        _pendingRunCodeActions = 0;
+
+        int elapsedSeconds = Mathf.RoundToInt(elapsed);
 
         if (showPercent)
-            SetStatusText($"{label}\n\nElapsed time: {elapsed:0.0} s\nProgress: 100%");
+            SetStatusText($"{label}\n\nElapsed time: {elapsedSeconds} s\nProgress: 100%");
         else
-            SetStatusText($"{label}\n\nFinished in {elapsed:0.0} s");
+            SetStatusText($"{label}\n\nFinished in {elapsedSeconds} s");
+
+        FinalizeLatencyLog(success, label);
     }
 
     private void UpdateCleanExecutionProgress()
@@ -445,15 +656,16 @@ public class VoiceCaptureAndSend : MonoBehaviour
             return;
 
         float elapsed = Mathf.Max(0f, Time.realtimeSinceStartup - _executionStartTime);
+        int elapsedSeconds = Mathf.FloorToInt(elapsed);
 
         if (_showPercentForCurrentAction)
         {
             int percent = Mathf.Clamp(_lastCleanProgressPercent, 0, 99);
-            SetStatusText($"{_currentActionLabel}\n\nElapsed time: {elapsed:0.0} s\nProgress: {percent}%");
+            SetStatusText($"{_currentActionLabel}\n\nElapsed time: {elapsedSeconds} s\nProgress: {percent}%");
         }
         else
         {
-            SetStatusText($"{_currentActionLabel}\n\nElapsed time: {elapsed:0.0} s");
+            SetStatusText($"{_currentActionLabel}\n\nElapsed time: {elapsedSeconds} s");
         }
     }
 
@@ -498,6 +710,17 @@ public class VoiceCaptureAndSend : MonoBehaviour
     }
 
     [System.Serializable]
+    private class LatencyMeta
+    {
+        public int whisper_ms;
+        public int vision_ms;
+        public int llm_ms;
+        public int server_overhead_ms;
+        public int server_total_ms;
+        public string model;
+    }
+
+    [System.Serializable]
     private class TranscribeGateResponse
     {
         public string    transcript;
@@ -507,6 +730,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
         public string    dialog_summary;
         public Command   command;
         public Command[] commands;
+        public LatencyMeta meta;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -615,7 +839,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
         if (Microphone.devices.Length > 0)
         {
             microphoneDevice = Microphone.devices[0];
-            Debug.Log("[VoiceCaptureAndSend] Using microphone: " + microphoneDevice);
+            VerboseLog("[VoiceCaptureAndSend] Using microphone: " + microphoneDevice);
         }
         else
         {
@@ -659,7 +883,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
             if (devices.Count > 0)
             {
                 rightController = devices[0];
-                Debug.Log("[VoiceCaptureAndSend] Right controller connected: " + rightController.name);
+                VerboseLog("[VoiceCaptureAndSend] Right controller connected: " + rightController.name);
             }
         }
 
@@ -669,7 +893,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
             rightController.TryGetFeatureValue(CommonUsages.primaryButton, out bool btnDown);
 
             // Debug information
-          /*  Debug.Log(
+          /*  VerboseLog(
                 $"[VoiceCaptureAndSend] primaryButton={btnDown}  " +
                 $"lastAPressed={lastAPressed}  " +
                 $"isRecording={isRecording}"
@@ -678,14 +902,14 @@ public class VoiceCaptureAndSend : MonoBehaviour
             // Start recording on button press
             if (btnDown && !lastAPressed && !isRecording)
             {
-                Debug.Log("[VoiceCaptureAndSend] A pressed -> START recording");
+                VerboseLog("[VoiceCaptureAndSend] A pressed -> START recording");
                 StartListening();
             }
 
             // Stop recording on button release
             if (!btnDown && lastAPressed && isRecording)
             {
-                Debug.Log("[VoiceCaptureAndSend] A released -> STOP recording");
+                VerboseLog("[VoiceCaptureAndSend] A released -> STOP recording");
                 StopListening();
             }
 
@@ -761,7 +985,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
                 Destroy(tex);
                 Destroy(resized);
 
-                Debug.Log($"[VoiceCaptureAndSend] Screenshot captured ({_capturedScreenshots.Count} total)");
+                VerboseLog($"[VoiceCaptureAndSend] Screenshot captured ({_capturedScreenshots.Count} total)");
             }
             catch (System.Exception e)
             {
@@ -789,6 +1013,9 @@ public class VoiceCaptureAndSend : MonoBehaviour
     public void StopRecordingAndSend()
     {
         if (!isRecording) { SetHeaderLine("Not recording."); return; }
+
+        // End-to-end latency begins when the user releases/stops the recording.
+        float requestStartTime = Time.realtimeSinceStartup;
 
         // Stop the screenshot loop — _capturedScreenshots now holds all frames
         if (_screenshotLoopCoroutine != null)
@@ -826,7 +1053,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
                 gazeTargetName = gazeInteractor.LockedTarget.name;
                 if (gazeInteractor.TryGetLockedHit(out RaycastHit lockedHit))
                     wallAnchor = WallAnchor.FromHit(lockedHit);
-                Debug.Log($"[VoiceCaptureAndSend] Target = LOCKED selection: '{gazeTargetName}'");
+                VerboseLog($"[VoiceCaptureAndSend] Target = LOCKED selection: '{gazeTargetName}'");
             }
             else if (gazeInteractor.TryGetCurrentHit(out RaycastHit hit) && hit.collider != null)
             {
@@ -836,17 +1063,16 @@ public class VoiceCaptureAndSend : MonoBehaviour
                 if (aic == null) aic = hit.collider.GetComponentInParent<AIControllable>();
                 gazeTargetName = aic != null ? aic.name : hit.collider.gameObject.name;
                 wallAnchor     = WallAnchor.FromHit(hit);
-                Debug.Log($"[VoiceCaptureAndSend] Target = live ray hit (no lock): '{gazeTargetName}'");
+                VerboseLog($"[VoiceCaptureAndSend] Target = live ray hit (no lock): '{gazeTargetName}'");
             }
             else
             {
-                Debug.Log("[VoiceCaptureAndSend] Target = none (no lock, no ray hit)");
+                VerboseLog("[VoiceCaptureAndSend] Target = none (no lock, no ray hit)");
             }
         }
 
         _capturedTargetNameAtStop = gazeTargetName != "none" ? gazeTargetName : null;
 
-        float requestStartTime = Time.realtimeSinceStartup;
         int   voiceJobId       = StartJob("voice", "UPLOADING", null, requestStartTime);
 
         SetStatusText("Recording stopped.\n\nProcessing...");
@@ -875,13 +1101,17 @@ public class VoiceCaptureAndSend : MonoBehaviour
         // colloquial names ("home", "tree") to exact Unity names
         string sceneObjectsJson = CollectSceneObjectNamesJson();
         form.AddField("scene_objects", sceneObjectsJson);
-        Debug.Log("[VoiceCaptureAndSend] Scene objects sent: " + sceneObjectsJson);
+        VerboseLog("[VoiceCaptureAndSend] Scene objects sent: " + sceneObjectsJson);
 
         UpdateJob(voiceJobId, "SENDING", 10);
+
+        long unityPrepareMs = (long)Mathf.Max(0f, (Time.realtimeSinceStartup - requestStartTime) * 1000f);
+        float httpStartTime = Time.realtimeSinceStartup;
 
         using (UnityWebRequest www = UnityWebRequest.Post(serverUrl, form))
         {
             yield return www.SendWebRequest();
+            long httpRoundtripMs = (long)Mathf.Max(0f, (Time.realtimeSinceStartup - httpStartTime) * 1000f);
 
             if (www.result != UnityWebRequest.Result.Success)
             {
@@ -894,7 +1124,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
             UpdateJob(voiceJobId, "PARSING", 60);
 
             string json = www.downloadHandler.text;
-            Debug.Log("[VoiceCaptureAndSend] Raw JSON: " + json);
+            VerboseLog("[VoiceCaptureAndSend] Raw JSON: " + json);
 
             TranscribeGateResponse gateResult = null;
             try { gateResult = JsonUtility.FromJson<TranscribeGateResponse>(json); }
@@ -917,6 +1147,34 @@ public class VoiceCaptureAndSend : MonoBehaviour
             SetTranscriptClean(gateResult.transcript);
             SetIntentClean(primaryCommandForDisplay);
 
+            string latencyAction = primaryCommandForDisplay != null && !string.IsNullOrWhiteSpace(primaryCommandForDisplay.action)
+                ? primaryCommandForDisplay.action.Trim()
+                : "no_action";
+            string latencyTarget = GetLatencyTarget(primaryCommandForDisplay, wallAnchor);
+            LatencyMeta meta = gateResult.meta ?? new LatencyMeta();
+
+            _currentLatency = new LatencyContext
+            {
+                commandId          = voiceJobId,
+                transcript         = gateResult.transcript ?? "",
+                action             = latencyAction,
+                target             = latencyTarget,
+                requestStartTime   = requestStartTime,
+                unityPrepareMs     = unityPrepareMs,
+                httpRoundtripMs    = httpRoundtripMs,
+                confirmationWaitMs = 0,
+                dispatchMs         = 0,
+                actionExecutionMs  = 0,
+                whisperMs          = meta.whisper_ms,
+                visionMs           = meta.vision_ms,
+                llmMs              = meta.llm_ms,
+                serverOverheadMs   = meta.server_overhead_ms,
+                serverTotalMs      = meta.server_total_ms
+            };
+
+            Debug.Log($"[COMMAND] \"{gateResult.transcript}\"");
+            Debug.Log($"[ACTION] {latencyAction} | target={latencyTarget}");
+
             // ── Confirmation required ─────────────────────────────────────
             if (gateResult.requires_confirmation)
             {
@@ -926,6 +1184,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
                 var  capturedCommands = gateResult.commands;
                 var  capturedCommand  = gateResult.command;
                 bool confirmed        = false;
+                float confirmationStartTime = Time.realtimeSinceStartup;
 
                 if (confirmationDialog != null)
                 {
@@ -960,11 +1219,20 @@ public class VoiceCaptureAndSend : MonoBehaviour
                     StartCleanExecutionProgress(commandForProgress);
                 }
 
+                if (_currentLatency != null)
+                {
+                    _currentLatency.confirmationWaitMs = (long)Mathf.Max(
+                        0f,
+                        (Time.realtimeSinceStartup - confirmationStartTime) * 1000f
+                    );
+                }
+
                 if (!confirmed)
                 {
                     _isExecutingCleanAction = false;
                     SetStatusText("Command cancelled.");
                     FinishJob(voiceJobId, false, "cancelled");
+                    FinalizeLatencyLog(false, "cancelled");
                     _headerLine = "";
                     RefreshJobsUI();
                     yield break;
@@ -976,6 +1244,8 @@ public class VoiceCaptureAndSend : MonoBehaviour
             }
 
             // ── No confirmation needed ───────────────────────────────────
+            Command commandForProgressNoConfirm = GetPrimaryCommand(gateResult.commands, gateResult.command);
+            StartCleanExecutionProgress(commandForProgressNoConfirm);
             UpdateJob(voiceJobId, "EXECUTING", 85);
             DispatchCommands(gateResult.commands, gateResult.command, wallAnchor, voiceJobId, requestStartTime);
         }
@@ -988,6 +1258,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
     void DispatchCommands(Command[] commands, Command singleCommand,
                           WallAnchor wallAnchor, int voiceJobId, float requestStartTime)
     {
+        float dispatchStartTime = Time.realtimeSinceStartup;
         bool executedAnything   = false;
         bool startedAnyAsyncJob = false;
         Command primaryCommandForProgress = GetPrimaryCommand(commands, singleCommand);
@@ -1051,7 +1322,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
                     int jobId = StartJob("model+code", "GENERATING_MODEL", null, requestStartTime);
                     Vector3 pos = GetPlacementPosition();
 
-                    Debug.Log($"[VoiceCaptureAndSend] Sequenced generate_model + run_code: generate '{genName}', then attach code.");
+                    VerboseLog($"[VoiceCaptureAndSend] Sequenced generate_model + run_code: generate '{genName}', then attach code.");
                     StartCoroutine(GenerateAndAttachCode_Job(jobId, genPrompt, genName, pos, behaviour, stage, style));
 
                     executedAnything   = true;
@@ -1061,6 +1332,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
 
                     if (stateStore != null) stateStore.RequestSave();
                     FinishJob(voiceJobId, true, "dispatched_model_then_code");
+                    SetCurrentDispatchLatency(dispatchStartTime);
                     _headerLine = "";
                     RefreshJobsUI();
                     return;
@@ -1086,18 +1358,26 @@ public class VoiceCaptureAndSend : MonoBehaviour
 
         if (!executedAnything)
         {
+            SetCurrentDispatchLatency(dispatchStartTime);
             SetHeaderLine("No command executed.");
             FinishJob(voiceJobId, false, "no_command");
+            StopCleanExecutionProgress("No command executed", false);
             return;
         }
 
+        SetCurrentDispatchLatency(dispatchStartTime);
         if (stateStore != null) stateStore.RequestSave();
         FinishJob(voiceJobId, true, startedAnyAsyncJob ? "dispatched_async" : "done");
 
-        // For immediate actions like run_code, stop the clean progress here.
-        // For poster/texture/model, their own coroutine stops it when the real work is finished.
+        // Immediate deterministic actions stop the clean progress here.
+        // Poster/texture/model finish via their job coroutines; run_code finishes via
+        // the AICodeCommandHandler completion callback.
         if (_isExecutingCleanAction && !IsLongRunningCommand(primaryCommandForProgress))
-            StopCleanExecutionProgress("Action completed");
+        {
+            bool isNoAction = primaryCommandForProgress == null ||
+                              string.Equals(primaryCommandForProgress.action, "no_action", System.StringComparison.OrdinalIgnoreCase);
+            StopCleanExecutionProgress(isNoAction ? "No action needed" : "Action completed", !isNoAction);
+        }
 
         _headerLine = "";
         RefreshJobsUI();
@@ -1243,7 +1523,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
                         if (targetObj != null)
                         {
                             wallAnchor = CreateAnchorFromTargetObject(targetObj);
-                            Debug.Log("[VoiceCaptureAndSend] set_wall_texture using target: " + targetObj.name);
+                            VerboseLog("[VoiceCaptureAndSend] set_wall_texture using target: " + targetObj.name);
                         }
                     }
 
@@ -1332,22 +1612,26 @@ public class VoiceCaptureAndSend : MonoBehaviour
                     {
                         resolvedTarget = poster.gameObject;
 
-                        Debug.Log(
+                        VerboseLog(
                             $"[VoiceCaptureAndSend] POSTER target locked to " +
                             $"'{resolvedTarget.name}'. Parent will NOT be modified."
                         );
                     }
 
-                    Debug.Log(
+                    VerboseLog(
                         $"[VoiceCaptureAndSend] run_code attaching to " +
                         $"EXACT target '{resolvedTarget.name}'"
                     );
+
+                    int latencyCommandId = _currentLatency != null ? _currentLatency.commandId : -1;
+                    _pendingRunCodeActions++;
 
                     AICodeCommandHandler.Instance.HandleRunCode(
                         behaviourPrompt,
                         resolvedTarget,
                         effectId: System.Guid.NewGuid().ToString(),
-                        isReplay: false
+                        isReplay: false,
+                        onCompleted: ok => OnRunCodeCompleted(latencyCommandId, ok)
                     );
 
                     if (modelSpawner != null)
@@ -1392,7 +1676,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
                     float factor = cmd.factor > 0.0001f ? cmd.factor : 1f;
                     gazeInteractor.ScaleGazedBy(factor);
 
-                    Debug.Log("[VoiceCaptureAndSend] deterministic scale x" + factor +
+                    VerboseLog("[VoiceCaptureAndSend] deterministic scale x" + factor +
                               " on '" + ai.name + "'");
 
                     if (stateStore != null) stateStore.RequestSave();
@@ -1431,7 +1715,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
                         float width  = cmd.width_m  > 0.0001f ? cmd.width_m  : poster.widthMeters;
                         float height = cmd.height_m > 0.0001f ? cmd.height_m : poster.heightMeters;
 
-                        Debug.Log(
+                        VerboseLog(
                             "[VoiceCaptureAndSend] set_dimensions POSTER '" + ai.name +
                             "' width=" + width + "m height=" + height + "m"
                         );
@@ -1457,7 +1741,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
                         if (cmd.depth_m > 0.0001f && currentWorldSize.z > 0.0001f)
                             newLocalScale.z *= cmd.depth_m / currentWorldSize.z;
 
-                        Debug.Log(
+                        VerboseLog(
                             "[VoiceCaptureAndSend] set_dimensions OBJECT '" + ai.name +
                             "' worldBefore=" + currentWorldSize +
                             " localScaleAfter=" + newLocalScale
@@ -1584,14 +1868,43 @@ public class VoiceCaptureAndSend : MonoBehaviour
         yield return null;
 
         UpdateJob(jobId, "ATTACHING_CODE", 85);
-        Debug.Log($"[VoiceCaptureAndSend] Generated object appeared: '{spawnedObj.name}'. Attaching run_code now.");
+        VerboseLog($"[VoiceCaptureAndSend] Generated object appeared: '{spawnedObj.name}'. Attaching run_code now.");
+
+        bool codeCompleted = false;
+        bool codeSucceeded = false;
 
         AICodeCommandHandler.Instance.HandleRunCode(
             behaviourPrompt,
             spawnedObj,
             effectId: System.Guid.NewGuid().ToString(),
-            isReplay: false
+            isReplay: false,
+            onCompleted: ok =>
+            {
+                codeSucceeded = ok;
+                codeCompleted = true;
+            }
         );
+
+        // Wait until GPT generation + runtime compile/attach + generated Start() have completed.
+        const float codeTimeout = 180f;
+        float codeWait = 0f;
+        while (!codeCompleted && codeWait < codeTimeout)
+        {
+            yield return null;
+            codeWait += Time.deltaTime;
+        }
+
+        if (!codeCompleted)
+        {
+            FinishJob(jobId, false, $"run_code timed out after {codeTimeout:0}s");
+            yield break;
+        }
+
+        if (!codeSucceeded)
+        {
+            FinishJob(jobId, false, "generated model created, but run_code failed");
+            yield break;
+        }
 
         if (modelSpawner != null)
             modelSpawner.SaveBehaviourPrompt(genName, behaviourPrompt);
@@ -1600,7 +1913,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
             stateStore.RequestSave();
 
         UpdateJob(jobId, "CODE_ATTACHED", 100);
-        FinishJob(jobId, true, $"generated '{genName}' + code attached");
+        FinishJob(jobId, true, $"generated '{genName}' + code attached and executed");
     }
 
     // ─────────────────────────────────────────────────────────────────────────

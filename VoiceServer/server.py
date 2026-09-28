@@ -37,6 +37,14 @@ print("OPENAI_API_KEY loaded:", bool(OPENAI_API_KEY))
 # "o4-mini" is good for structured JSON
 LLM_MODEL = "o4-mini"
 
+# Keep the terminal concise during experiments. Set XR_VERBOSE_LOGGING=1 to restore details.
+VERBOSE_LOGGING = os.getenv("XR_VERBOSE_LOGGING", "0").strip().lower() in ("1", "true", "yes", "on")
+
+
+def vprint(*args, **kwargs):
+    if VERBOSE_LOGGING:
+        print(*args, **kwargs)
+
 
 def get_local_ip():
     """Return the LAN IP that other Unity clients can use to reach this server."""
@@ -451,7 +459,7 @@ def _log_meshy_progress_once(safe: str, phase: str, task_id: str, meshy_status: 
     job["_last_logged_progress"] = p
     jobs[safe] = job
 
-    print(f"[meshy] {phase} {task_id} status={status} progress={p}", flush=True)
+    vprint(f"[meshy] {phase} {task_id} status={status} progress={p}", flush=True)
 
 
 def _generate_with_meshy_background(prompt: str, name: str, stage: str, art_style: str):
@@ -625,7 +633,7 @@ def text_to_3d(req: TextTo3DRequest, background_tasks: BackgroundTasks):
 
     stage = (req.stage or "preview").lower()
     art_style = (req.art_style or "realistic").lower()
-    print(f"[text-to-3d] starting name={req.name} safe={safe} stage={stage} art_style={art_style}", flush=True)
+    vprint(f"[text-to-3d] starting name={req.name} safe={safe} stage={stage} art_style={art_style}", flush=True)
 
     jobs[safe] = {
         "status": "RUNNING", "stage": stage, "task_id": None,
@@ -759,6 +767,8 @@ def _commands_to_sentence(commands: list) -> str:
 
 
 def _print_llm_debug(transcript: str, gaze_target: str, commands: list, reasoning: str = "", vision_context: str = ""):
+    if not VERBOSE_LOGGING:
+        return
     print("\n========== XR PIPELINE DEBUG ==========")
     print()
     print(f"Transcript: {transcript}")
@@ -1118,7 +1128,7 @@ def llm_decide(transcript: str, gaze_target: str = "none", vision_context: str =
         limit=80,
     )
     if scene_object_names:
-        print(f"[Scene filter] Sent {len(filtered_scene_objects)} of {len(scene_object_names)} scene object names to command LLM", flush=True)
+        vprint(f"[Scene filter] Sent {len(filtered_scene_objects)} of {len(scene_object_names)} scene object names to command LLM", flush=True)
 
     user_message = f'GAZE_TARGET: "{gaze_target}"\nUSER SAID: "{transcript}"'
     if vision_context:
@@ -1147,7 +1157,7 @@ def llm_decide(transcript: str, gaze_target: str = "none", vision_context: str =
         commands = parsed.get("commands", [])
         rewritten = _rewrite_resize_commands(commands, transcript, gaze_target)
         if rewritten != commands:
-            print("[Resize safety] Rewrote LLM resize command:", json.dumps(rewritten), flush=True)
+            vprint("[Resize safety] Rewrote LLM resize command:", json.dumps(rewritten), flush=True)
         parsed["commands"] = rewritten
 
         reasoning = _commands_to_sentence(parsed.get("commands", []))
@@ -1350,59 +1360,76 @@ async def transcribe(
 ):
     """
     Full pipeline: Whisper -> (optional) GPT-4o Vision (multi-frame) -> LLM -> confirmation gate.
+    Returns stage-level latency metadata to Unity.
     """
+    request_started = time.perf_counter()
+
     with open(TEMP_AUDIO_PATH, "wb") as f:
         f.write(await audio.read())
 
-    gaze_target     = gaze_target.strip() if gaze_target else "none"
-    screenshots_raw = (screenshots_b64 or "").strip()
+    gaze_target       = gaze_target.strip() if gaze_target else "none"
+    screenshots_raw   = (screenshots_b64 or "").strip()
     scene_objects_raw = (scene_objects or "").strip()
-    print(f"\n[Gaze target]: '{gaze_target}'\n")
+    vprint(f"\n[Gaze target]: '{gaze_target}'\n")
 
-    # Parse the JSON array of base64 strings sent from Unity
+    # Parse the JSON array of base64 strings sent from Unity.
     screenshots_list = []
     if screenshots_raw:
         try:
             screenshots_list = json.loads(screenshots_raw)
-            print(f"[Vision] Received {len(screenshots_list)} screenshot(s)\n")
+            vprint(f"[Vision] Received {len(screenshots_list)} screenshot(s)\n")
         except Exception as e:
-            print(f"[Vision] Failed to parse screenshots array: {e}\n")
+            print(f"[Vision] Failed to parse screenshots array: {e}", flush=True)
 
-    # Parse scene object names sent from Unity
+    # Parse scene object names sent from Unity.
     scene_object_names = []
     if scene_objects_raw:
         try:
             scene_object_names = json.loads(scene_objects_raw)
-            print(f"[Scene] Received {len(scene_object_names)} scene object names\n")
+            vprint(f"[Scene] Received {len(scene_object_names)} scene object names\n")
         except Exception as e:
-            print(f"[Scene] Failed to parse scene_objects: {e}\n")
+            print(f"[Scene] Failed to parse scene_objects: {e}", flush=True)
 
-    t0 = time.time()
+    t0 = time.perf_counter()
     segments, _info = whisper_model.transcribe(TEMP_AUDIO_PATH, beam_size=5, task="translate")
     transcript = "".join(s.text for s in segments).strip()
-    whisper_time = round(time.time() - t0, 3)
-    print(f"[Whisper] ({whisper_time}s): '{transcript}'\n")
+    whisper_time = time.perf_counter() - t0
+    vprint(f"[Whisper] ({whisper_time:.3f}s): '{transcript}'\n")
 
-    # ── Vision pass (only if screenshots were sent) ───────────────────────────
+    # Vision pass (only if screenshots were sent).
     vision_context = ""
+    vision_time = 0.0
     if screenshots_list:
-        tv = time.time()
+        tv = time.perf_counter()
         vision_context = vision_describe(screenshots_list, transcript, scene_object_names)
-        vision_time = round(time.time() - tv, 3)
-        print(f"[Vision] ({vision_time}s): '{vision_context}'\n")
+        vision_time = time.perf_counter() - tv
+        vprint(f"[Vision] ({vision_time:.3f}s): '{vision_context}'\n")
 
-    t1 = time.time()
-    result = llm_decide(transcript, gaze_target=gaze_target, vision_context=vision_context, scene_object_names=scene_object_names)
-    llm_time = round(time.time() - t1, 3)
+    t1 = time.perf_counter()
+    result = llm_decide(
+        transcript,
+        gaze_target=gaze_target,
+        vision_context=vision_context,
+        scene_object_names=scene_object_names,
+    )
+    llm_time = time.perf_counter() - t1
 
     commands = result.get("commands", [{"action": "no_action"}]) or [{"action": "no_action"}]
     reasoning = result.get("_reasoning", "")
 
-    print(f"\n[LLM] ({llm_time}s) -> {json.dumps(commands)}\n")
+    vprint(f"\n[LLM] ({llm_time:.3f}s) -> {json.dumps(commands)}\n")
     if reasoning:
-        print(f"[Reasoning] {reasoning}\n")
+        vprint(f"[Reasoning] {reasoning}\n")
 
     _print_llm_debug(transcript, gaze_target, commands, reasoning, vision_context)
+
+    # Total server time includes request parsing / audio save / orchestration overhead.
+    server_total_time = time.perf_counter() - request_started
+    whisper_ms = int(round(whisper_time * 1000))
+    vision_ms = int(round(vision_time * 1000))
+    llm_ms = int(round(llm_time * 1000))
+    server_total_ms = int(round(server_total_time * 1000))
+    server_overhead_ms = max(0, server_total_ms - whisper_ms - vision_ms - llm_ms)
 
     log_entry = {
         "time": datetime.now().isoformat(),
@@ -1412,17 +1439,37 @@ async def transcribe(
         "screenshot_count": len(screenshots_list),
         "scene_objects": scene_object_names,
         "commands": commands,
-        "whisper_ms": int(whisper_time * 1000),
-        "llm_ms": int(llm_time * 1000),
+        "whisper_ms": whisper_ms,
+        "vision_ms": vision_ms,
+        "llm_ms": llm_ms,
+        "server_overhead_ms": server_overhead_ms,
+        "server_total_ms": server_total_ms,
     }
     with open(TRANSCRIPT_FILE, "a", encoding="utf-8") as f:
         f.write(json.dumps(log_entry) + "\n")
 
     meta = {
-        "whisper_ms": log_entry["whisper_ms"],
-        "llm_ms": log_entry["llm_ms"],
+        "whisper_ms": whisper_ms,
+        "vision_ms": vision_ms,
+        "llm_ms": llm_ms,
+        "server_overhead_ms": server_overhead_ms,
+        "server_total_ms": server_total_ms,
         "model": LLM_MODEL,
     }
+
+    primary = commands[0] if commands else {"action": "no_action"}
+    primary_action = primary.get("action", "no_action")
+    primary_target = (
+        (primary.get("targets") or [None])[0]
+        or primary.get("target")
+        or gaze_target
+        or "none"
+    )
+    print(
+        f"[CMD] {transcript!r} | action={primary_action} | target={primary_target} | "
+        f"STT={whisper_ms}ms | Vision={vision_ms}ms | LLM={llm_ms}ms | Server={server_total_ms}ms",
+        flush=True,
+    )
 
     if _is_actionable(commands):
         session_id = str(_uuid.uuid4())
@@ -1437,7 +1484,7 @@ async def transcribe(
             "dialog_summary": dialog_summary,
         }
 
-        print(f"[Pending] session={session_id}  summary='{dialog_summary}'  msg='{confirmation_message}'\n")
+        vprint(f"[Pending] session={session_id} summary='{dialog_summary}' msg='{confirmation_message}'")
 
         return JSONResponse(content={
             "transcript": transcript,
@@ -1478,7 +1525,7 @@ def execute(req: ConfirmRequest):
         )
 
     commands = entry["commands"]
-    print(f"[Execute] session={req.session_id} -> {json.dumps(commands)}\n")
+    vprint(f"[Execute] session={req.session_id} -> {json.dumps(commands)}")
 
     return JSONResponse(content={
         "status": "executed",
@@ -1497,7 +1544,7 @@ def execute(req: ConfirmRequest):
 def cancel(req: ConfirmRequest):
     discarded = pending_commands.pop(req.session_id, None)
     if discarded:
-        print(f"[Cancel] session={req.session_id} discarded.")
+        vprint(f"[Cancel] session={req.session_id} discarded.")
         return JSONResponse(content={"status": "cancelled", "session_id": req.session_id})
     return JSONResponse(
         status_code=404,

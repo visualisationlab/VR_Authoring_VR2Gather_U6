@@ -202,11 +202,13 @@ public class AICodeCommandHandler : MonoBehaviour
 
 
     public void HandleRunCode(string behaviourPrompt, GameObject target,
-                          string effectId = null, bool isReplay = false)
+                          string effectId = null, bool isReplay = false,
+                          Action<bool> onCompleted = null)
     {
         if (target == null)
         {
             Log("HandleRunCode: target is null, skipping.");
+            onCompleted?.Invoke(false);
             return;
         }
 
@@ -226,6 +228,7 @@ public class AICodeCommandHandler : MonoBehaviour
             {
                 gaze.ScaleGazedBy(ExtractScaleFactor(behaviourPrompt));
                 Log("Poster resize routed to deterministic scaler (LLM bypassed).");
+                onCompleted?.Invoke(true);
                 return;
             }
         }
@@ -233,13 +236,14 @@ public class AICodeCommandHandler : MonoBehaviour
         if (string.IsNullOrWhiteSpace(openAiApiKey))
         {
             Log("OpenAI key not found.");
+            onCompleted?.Invoke(false);
             return;
         }
 
         string id = string.IsNullOrEmpty(effectId) ? Guid.NewGuid().ToString() : effectId;
         LastAutoTarget = target;
 
-        StartCoroutine(RequestCode(behaviourPrompt, target, id, isReplay));
+        StartCoroutine(RequestCode(behaviourPrompt, target, id, isReplay, onCompleted));
     }
     static bool LooksLikeScaleIntent(string p)
     {
@@ -364,7 +368,7 @@ public GameObject ResolveTarget(string command)
     // ------------------------------------------------------------------ core coroutine
 
     IEnumerator RequestCode(string userCommand, GameObject target,
-                            string effectId, bool isReplay)
+                            string effectId, bool isReplay, Action<bool> onCompleted = null)
     {
         Log($"Asking GPT for code — target: '{target.name}'" +
             (isReplay ? " [REPLAY]" : "") + "...");
@@ -406,6 +410,7 @@ public GameObject ResolveTarget(string command)
                 if (www.result != UnityWebRequest.Result.Success)
                 {
                     Log("GPT request failed: " + www.error + "\n" + www.downloadHandler.text);
+                    onCompleted?.Invoke(false);
                     yield break;
                 }
 
@@ -413,6 +418,7 @@ public GameObject ResolveTarget(string command)
                 if (string.IsNullOrEmpty(gptText))
                 {
                     Log("Empty GPT response.");
+                    onCompleted?.Invoke(false);
                     yield break;
                 }
 
@@ -424,6 +430,7 @@ public GameObject ResolveTarget(string command)
                 if (string.IsNullOrEmpty(code))
                 {
                     Log("No C# code block found in GPT response.");
+                    onCompleted?.Invoke(false);
                     yield break;
                 }
 
@@ -454,13 +461,16 @@ public GameObject ResolveTarget(string command)
                     {
                         TrySendRuntimeCodeSync(target, userCommand, code, effectId, isParticle);
                     }
+                    // Give the newly attached MonoBehaviour at least one frame so its Start()
+                    // method can run. For one-shot actions such as changing color, moving, or
+                    // rotating, this is the point at which the visible action has happened.
+                    yield return null;
 
                     // --- Particle persistence ---
-                    // Wait a couple of frames so generated Start() has time to create
-                    // the child ParticleSystem object before we search/save it.
+                    // Particle commands need one additional frame before searching for the
+                    // child ParticleSystem created by generated Start().
                     if (!isReplay && isParticle && effectId != null)
                     {
-                        yield return null;
                         yield return null;
 
                         if (ParticleEffectManager.Instance != null)
@@ -478,6 +488,8 @@ public GameObject ResolveTarget(string command)
                             Debug.LogWarning("[AICodeCommandHandler] ParticleEffectManager not found — particle will not persist.");
                         }
                     }
+
+                    onCompleted?.Invoke(true);
                     yield break; // success
                 }
 
@@ -491,6 +503,8 @@ public GameObject ResolveTarget(string command)
                 // else: loop continues to attempt 2
             }
         }
+
+        onCompleted?.Invoke(false);
     }
 
 
