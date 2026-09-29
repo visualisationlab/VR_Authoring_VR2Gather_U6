@@ -453,46 +453,30 @@ public class VoiceCaptureAndSend : MonoBehaviour
                 : "Transcript:\n\n" + transcript.Trim();
     }
 
-    private void SetIntentClean(Command cmd)
+    private void SetIntentClean(Command cmd, string serverSummary = null)
     {
-        if (!IsMasterUser()) return;
-        if (aiIntentText == null) return;
+        if (!IsMasterUser() || aiIntentText == null) return;
 
-        if (cmd == null || string.IsNullOrWhiteSpace(cmd.action))
-        {
-            aiIntentText.text = "Intent (action): no_action";
-            return;
-        }
+        string summary = !string.IsNullOrWhiteSpace(serverSummary)
+            ? serverSummary.Trim()
+            : BuildShortIntent(cmd);
 
-        var sb = new StringBuilder();
-        sb.AppendLine("Intent (action): " + cmd.action);
+        aiIntentText.text = "Intent:\n\n" + summary;
+    }
 
-        if (!string.IsNullOrWhiteSpace(cmd.behaviour_prompt))
-        {
-            sb.AppendLine();
-            sb.AppendLine("Behaviour prompt:");
-            sb.AppendLine(cmd.behaviour_prompt);
-        }
-        else if (!string.IsNullOrWhiteSpace(cmd.prompt))
-        {
-            sb.AppendLine();
-            sb.AppendLine("Prompt:");
-            sb.AppendLine(cmd.prompt);
-        }
-        else if (!string.IsNullOrWhiteSpace(cmd.image_prompt))
-        {
-            sb.AppendLine();
-            sb.AppendLine("Image prompt:");
-            sb.AppendLine(cmd.image_prompt);
-        }
-        else if (!string.IsNullOrWhiteSpace(cmd.texture_prompt))
-        {
-            sb.AppendLine();
-            sb.AppendLine("Texture prompt:");
-            sb.AppendLine(cmd.texture_prompt);
-        }
+    private string BuildShortIntent(Command cmd)
+    {
+        if (cmd == null || string.IsNullOrWhiteSpace(cmd.action) ||
+            cmd.action.Trim().ToLowerInvariant() == "no_action")
+            return "No action";
 
-        aiIntentText.text = sb.ToString().TrimEnd();
+        string target = (cmd.targets != null && cmd.targets.Length > 0 &&
+                         !string.IsNullOrWhiteSpace(cmd.targets[0]))
+            ? cmd.targets[0]
+            : cmd.target;
+
+        string label = GetCleanActionLabel(cmd);
+        return string.IsNullOrWhiteSpace(target) ? label : $"{label}: \"{target}\"";
     }
 
     private Command GetPrimaryCommand(Command[] commands, Command singleCommand)
@@ -1145,7 +1129,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
 
             Command primaryCommandForDisplay = GetPrimaryCommand(gateResult.commands, gateResult.command);
             SetTranscriptClean(gateResult.transcript);
-            SetIntentClean(primaryCommandForDisplay);
+            SetIntentClean(primaryCommandForDisplay, gateResult.dialog_summary);
 
             string latencyAction = primaryCommandForDisplay != null && !string.IsNullOrWhiteSpace(primaryCommandForDisplay.action)
                 ? primaryCommandForDisplay.action.Trim()
