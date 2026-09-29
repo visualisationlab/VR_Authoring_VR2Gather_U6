@@ -20,7 +20,7 @@ public class WristMenuFollower : MonoBehaviour
     public float sideOffset = 0.0f;
 
     private InputDevice leftController;
-    private bool menuVisible = false;
+    private bool menuVisible = true;
     private bool previousXButtonState = false;
     private float nextDebugTime = 0f;
 
@@ -29,12 +29,18 @@ public class WristMenuFollower : MonoBehaviour
         BindCameraIfNeeded();
         BindMenuRootIfNeeded();
 
+        menuVisible = true;
+
         if (menuRoot != null)
-            menuRoot.SetActive(false);
+            menuRoot.SetActive(true);
+
+        // Place it in front of the user immediately
+        if (hmdCamera != null && menuRoot != null)
+            PlaceOnceInFrontOfUser();
 
         SetRecordingStatus("Recording status will appear here");
         SetTranscript("Transcript text will appear here");
-        SetAIIntent("AI intent text will appear here");
+        SetAIIntent("Keep Pressing A for Recording and Release for Stop Recording.");
     }
 
     void Update()
