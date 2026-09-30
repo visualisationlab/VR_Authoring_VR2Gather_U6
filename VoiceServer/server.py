@@ -1287,21 +1287,19 @@ def _build_command_summary(cmd: dict, gaze_target: str = "") -> str:
         if re.search(r"\b(delete|destroy|remove)\b", low):
             return f'Delete "{target}"' if target else "Delete object"
 
-        # 2) Colour: any colour word plus a colour-ish verb/noun
+        if re.search(r"\b(particles?|particlesystem|fire|flames?|smoke|water|fountain|sparks?|explosion|mist|waterfall)\b", low):
+            return f"Create visual effect{target_suffix}"
+
         colour = _colour_from_prompt(behaviour)
-        if colour and re.search(r"\b(colou?r|turn|paint|material|renderer|renderers|change|make|set)\b", low):
+        if colour and re.search(r"\b(colou?r|turn|paint|change|make|set)\b", low):
             return f'Change color of "{target}" to {colour}' if target else f"Change color to {colour}"
 
-        # 3) Effects before move, because effect prompts often say "place it near..."
-        if any(w in low for w in ["particle", "fire", "smoke", "water", "fountain", "spark", "explosion", "mist"]):
-            return f"Create visual effect{target_suffix}"
-        if "rotate" in low or "rotation" in low:
+        if re.search(r"\b(rotate|rotation|spin)\b", low):
             return f"Rotate{target_suffix}"
-        if any(w in low for w in ["move", "position", "place", "put"]):
+        if re.search(r"\b(move|position|place|put)\b", low):
             return f"Move{target_suffix}"
 
-        # Fallback: keep it short
-        return _clean_short_text(f"Action{target_suffix}: {behaviour}", 60)    
+    return _clean_short_text(f"Action{target_suffix}: {behaviour}", 60)    
 
     if action == "set_dimensions":
         w = cmd.get("width_m")

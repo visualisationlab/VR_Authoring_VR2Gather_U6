@@ -22,6 +22,7 @@ using System.Text;
 using TMPro;
 using UnityEngine.XR;
 using VRT.Orchestrator;
+using System.Text.RegularExpressions;
 
 public class VoiceCaptureAndSend : MonoBehaviour
 {
@@ -496,6 +497,9 @@ public class VoiceCaptureAndSend : MonoBehaviour
         return null;
     }
 
+    private static bool HasWord(string text, string pattern) =>
+    Regex.IsMatch(text ?? "", @"\b(?:" + pattern + @")\b", RegexOptions.IgnoreCase);
+
     private string GetCleanActionLabel(Command cmd)
     {
         if (cmd == null || string.IsNullOrWhiteSpace(cmd.action))
@@ -507,22 +511,29 @@ public class VoiceCaptureAndSend : MonoBehaviour
         {
             string p = cmd.behaviour_prompt != null ? cmd.behaviour_prompt.ToLowerInvariant() : "";
 
-            if (p.Contains("color") || p.Contains("colour") || p.Contains("renderer") || p.Contains("material"))
-                return "Changing color";
+            // 1. Delete first ("remove" must never fall through to "move")
+            if (HasWord(p, "delete[sd]?|destroy(?:s|ed)?|remove[sd]?"))
+                return "Deleting object";
 
-            if (p.Contains("move") || p.Contains("place") || p.Contains("position") || p.Contains("put"))
-                return "Moving object";
-
-            if (p.Contains("rotate") || p.Contains("rotation"))
-                return "Rotating object";
-
-            if (p.Contains("scale") || p.Contains("resize") || p.Contains("size"))
-                return "Resizing object";
-
-            if (p.Contains("fire") || p.Contains("smoke") || p.Contains("particle") || p.Contains("water") || p.Contains("spark"))
+            // 2. Effects before colour (effect prompts mention renderer bounds / colours)
+            if (HasWord(p, "particles?|particlesystem|fire|flames?|smoke|water|fountain|sparks?|explosion|mist|waterfall"))
                 return "Creating visual effect";
 
+            // 3. Colour: explicit colour words, or a colour name + a change verb.
+            //    No "renderer"/"material": those appear in almost every prompt.
+            if (HasWord(p, "colou?rs?|paint|tint") ||
+                (HasWord(p, "black|white|red|green|blue|yellow|orange|purple|pink|brown|gr[ae]y|gold|silver|cyan|magenta") &&
+                 HasWord(p, "change|turn|set|make")))
+                return "Changing color";
+
+            if (HasWord(p, "rotate[sd]?|rotation|spin|spins"))
+                return "Rotating object";
+
+            if (HasWord(p, "move[sd]?|place[sd]?|position|reposition|put"))
+                return "Moving object";
+
             return "Running script";
+
         }
 
         if (action == "generate_model") return "Generating 3D model";

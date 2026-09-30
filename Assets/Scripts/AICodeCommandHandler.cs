@@ -63,7 +63,8 @@ public class AICodeCommandHandler : MonoBehaviour
         "    Avoid particles that are so large that they cover large parts of walls, tables, or the camera view.\n" +
         "    Particle systems should enhance the scene, not dominate it.\n" +
         "  - One class per response, must inherit MonoBehaviour.\n" +
-        "  - Only use: UnityEngine, System, System.Collections, System.Collections.Generic.\n" +
+        "  - Only use: UnityEngine, System, System.Collections, System.Collections.Generic,\n" +
+        "    plus the project helper class RuntimeBounds (global namespace, no using needed).\n" +
         "  - No Editor-only APIs. No ML-Agents. No external packages.\n" +
         "  - Keep it simple and correct for Unity 6.3 LTS (6000.3.x).\n" +
         "  - Prefer transform-based movement/rotation.\n" +
@@ -72,11 +73,11 @@ public class AICodeCommandHandler : MonoBehaviour
         "  - For particle effects: build the ParticleSystem entirely in code using AddComponent<ParticleSystem>().\n" +
         "    Configure all modules (main, emission, shape, colorOverLifetime, sizeOverLifetime, noise,\n" +
         "    velocityOverLifetime, collision, trails, subEmitters) as appropriate for the effect type.\n" +
-        "    Always call ps.Play() at the end. Parent the particle GameObject to the target object.\n" +
         "  - For particle effects: build the ParticleSystem entirely in code using AddComponent<ParticleSystem>().\n" +
         "    Configure all modules (main, emission, shape, colorOverLifetime, sizeOverLifetime, noise,\n" +
         "    velocityOverLifetime, collision, trails, subEmitters) as appropriate for the effect type.\n" +
-        "    Always call ps.Play() at the end. Parent the particle GameObject to the target object.\n" +
+        "    Always call ps.Play() at the end.\n" +
+        "    Parent the particle GameObject with SetParent(transform, false), then set its position explicitly.\n" + 
         "  - For smoke, fire, water, fountain, sparks, mist, or similar particle effects:\n" +
         "    ALWAYS create the ParticleSystem directly in code.\n" +
         "    ALWAYS assign a valid material to the ParticleSystemRenderer.\n" +
@@ -131,6 +132,9 @@ public class AICodeCommandHandler : MonoBehaviour
         "    To tint particle lights, get the Light component from a child GameObject and set light.color there.\n" +
         "  - NEVER use ParticleSystemShapeType.Cone as a flat emitter — use Rectangle or Circle instead.\n" +
         "  - Do NOT include any explanation outside the code block.\n\n" +
+        "  - Compute target bounds ONLY with RuntimeBounds.GetMeshBounds(gameObject), and compute them BEFORE creating any child objects.\n" +
+        "  - Create children with: child.transform.SetParent(transform, false); then set child.transform.position explicitly.\n" +
+
         "Current scene objects:\n{SCENE_CONTEXT}";
 
     // ------------------------------------------------------------------ lifecycle
