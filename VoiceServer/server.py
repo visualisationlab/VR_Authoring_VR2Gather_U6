@@ -343,7 +343,7 @@ User: "apply brick texture to the wall"
 {"commands":[{"action":"set_wall_texture","texture_prompt":"old red brick wall","target":"Wall"}]}
 
 User: "create a realistic wooden chair"
-{"commands":[{"action":"generate_model","prompt":"realistic wooden chair","name":"Wooden_Chair","stage":"preview","art_style":"realistic"}]}
+{"commands":[{"action":"generate_model","prompt":"realistic wooden chair","name":"Wooden_Chair","stage":"refine"}]}
 
 User: "move this tree near to the building"
 GAZE_TARGET: "AvatarBody"
@@ -358,7 +358,7 @@ VISION_CONTEXT: "The scene has a red tree on the right background and a white bu
 
 User: "place a tree between these two cubes"
 VISION_CONTEXT: {"primary_references":["Cube","Cube.001"],"relations":[{"relation":"between_space","objects":["Cube","Cube.001"]}]}
-{"commands":[{"action":"generate_model","prompt":"tree","name":"Generated_Tree","stage":"preview","art_style":"realistic"},{"action":"run_code","targets":["Generated_Tree"],"reference_objects":["Cube","Cube.001"],"relation":"between","behaviour_prompt":"on Start, place Generated_Tree at the midpoint between Cube and Cube.001 using combined renderer bounds, then ground it on the nearest floor surface while preserving its scale and rotation"}]}
+{"commands":[{"action":"generate_model","prompt":"tree","name":"Generated_Tree","stage":"refine"},{"action":"run_code","targets":["Generated_Tree"],"reference_objects":["Cube","Cube.001"],"relation":"between","behaviour_prompt":"on Start, place Generated_Tree at the midpoint between Cube and Cube.001 using combined renderer bounds, then ground it on the nearest floor surface while preserving its scale and rotation"}]}
 
 User: "place a cube between these two cubes"
 VISION_CONTEXT: {"primary_references":["Cube","Cube.001"]}
@@ -465,6 +465,7 @@ def _log_meshy_progress_once(safe: str, phase: str, task_id: str, meshy_status: 
 def _generate_with_meshy_background(prompt: str, name: str, stage: str, art_style: str):
     safe = _safe_name(name)
     out_glb = os.path.join(MODEL_DIR, f"{safe}.glb")
+    stage = "refine" 
 
     try:
         if not MESHY_API_KEY:
@@ -477,7 +478,7 @@ def _generate_with_meshy_background(prompt: str, name: str, stage: str, art_styl
 
         preview_task_id = _meshy_create_task(
             mode="preview",
-            payload={"prompt": prompt, "art_style": art_style, "should_remesh": True},
+            payload={"prompt": prompt, "should_remesh": True, "target_formats": ["glb"]},
         )
         _set_job_progress(safe, stage, preview_task_id, "PENDING", 0)
 
@@ -510,7 +511,7 @@ def _generate_with_meshy_background(prompt: str, name: str, stage: str, art_styl
 
         refine_task_id = _meshy_create_task(
             mode="refine",
-            payload={"preview_task_id": preview_task_id, "enable_pbr": True},
+            payload={"preview_task_id": preview_task_id, "enable_pbr": True, "target_formats": ["glb"]},
         )
         _set_job_progress(safe, stage, refine_task_id, "PENDING", 0)
 
@@ -595,7 +596,7 @@ def _make_placeholder_poster(prompt: str, out_path: str, w: int, h: int):
 class TextTo3DRequest(BaseModel):
     prompt: str
     name: str
-    stage: Optional[str] = "preview"
+    stage: Optional[str] = "refine"
     art_style: Optional[str] = "realistic"
 
 

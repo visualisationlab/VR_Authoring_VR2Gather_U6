@@ -71,7 +71,7 @@ public class RuntimeModelSpawner : MonoBehaviour
     {
         public string prompt;
         public string name;
-        public string stage = "preview";
+        public string stage = "refine";
         public string art_style = "realistic";
     }
 
@@ -96,7 +96,7 @@ public class RuntimeModelSpawner : MonoBehaviour
             StartCoroutine(RespawnSavedModels());
     }
 
-    public void GenerateAndSpawn(string prompt, string assetName, Vector3 position, string stage = "preview", string artStyle = "realistic")
+    public void GenerateAndSpawn(string prompt, string assetName, Vector3 position, string stage = "refine", string artStyle = "realistic")
     {
         StartCoroutine(GenerateAndSpawnCo(prompt, assetName, position, stage, artStyle));
     }
