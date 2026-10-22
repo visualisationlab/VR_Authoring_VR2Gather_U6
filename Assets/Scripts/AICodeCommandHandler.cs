@@ -13,6 +13,8 @@ public class AICodeCommandHandler : MonoBehaviour
     [Tooltip("Optional: leave empty to load OPENAI_API_KEY from project-root .env")]
     public string openAiApiKey = "";
     public string model = "gpt-4o";
+    [Tooltip("Python server endpoint; override when server is on another machine")]
+    public string modelConfigUrl = "http://localhost:8000/api/config/models";
     public int maxTokens = 2000;
     public float temperature = 0.2f;
 
@@ -384,6 +386,11 @@ public GameObject ResolveTarget(string command)
         string systemPrompt = kSystemPrompt
             .Replace("{TARGET_NAME}", target.name)
             .Replace("{SCENE_CONTEXT}", sceneCtx);
+
+        // Model settings are fetched from the shared Python config endpoint.
+        // A failed GET leaves the Inspector/default values intact.
+        if (!string.IsNullOrWhiteSpace(modelConfigUrl))
+            yield return StartCoroutine(RefreshModelConfig());
 
         // Up to 2 attempts: first normal, second with compile errors fed back to GPT
         string lastCode = null;
@@ -768,6 +775,51 @@ public GameObject ResolveTarget(string command)
     }
 
     // ------------------------------------------------------------------ helpers
+
+    [Serializable]
+    class RuntimeOpenAIConfig
+    {
+        public string code_model;
+        public int code_max_tokens;
+        public float code_temperature;
+    }
+    [Serializable]
+    class RuntimeModelConfigResponse
+    {
+        public RuntimeOpenAIConfig openai;
+    }
+
+    IEnumerator RefreshModelConfig()
+    {
+        using (var req = UnityWebRequest.Get(modelConfigUrl))
+        {
+            req.timeout = 3;
+            yield return req.SendWebRequest();
+            if (req.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogWarning("[AICodeCommandHandler] Model config unavailable; using existing values: " + req.error);
+                yield break;
+            }
+            try
+            {
+                var settings = JsonUtility.FromJson<RuntimeModelConfigResponse>(req.downloadHandler.text);
+                if (settings != null && settings.openai != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(settings.openai.code_model))
+                        model = settings.openai.code_model;
+                    if (settings.openai.code_max_tokens > 0)
+                        maxTokens = settings.openai.code_max_tokens;
+                    if (settings.openai.code_temperature >= 0 && settings.openai.code_temperature <= 2)
+                        temperature = settings.openai.code_temperature;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[AICodeCommandHandler] Invalid model config: " + ex.Message);
+            }
+        }
+    }
+
 
     string BuildPayload(string system, string user)
     {

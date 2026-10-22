@@ -20,6 +20,23 @@ import uuid as _uuid
 
 load_dotenv()
 
+# Shared model settings, stored alongside this server script.
+# Model IDs remain compatible defaults until you explicitly update ai_models.json.
+CONFIG_PATH = os.getenv("XR_AI_CONFIG", os.path.join(os.path.dirname(os.path.abspath(__file__)), "ai_models.json"))
+
+def load_ai_config():
+    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+        cfg = json.load(f)
+    required = ("speech", "openai", "meshy")
+    if not all(k in cfg and isinstance(cfg[k], dict) for k in required):
+        raise ValueError("ai_models.json must define speech, openai and meshy objects")
+    return cfg
+
+AI_CONFIG = load_ai_config()
+SPEECH_CFG = AI_CONFIG["speech"]
+OPENAI_CFG = AI_CONFIG["openai"]
+MESHY_CFG = AI_CONFIG["meshy"]
+
 app = FastAPI()
 
 SERVER_VERSION = "SCALING_V3"
@@ -35,7 +52,7 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 print("OPENAI_API_KEY loaded:", bool(OPENAI_API_KEY))
 
 # "o4-mini" is good for structured JSON
-LLM_MODEL = "o4-mini"
+LLM_MODEL = OPENAI_CFG["command_model"]
 
 # Keep the terminal concise during experiments. Set XR_VERBOSE_LOGGING=1 to restore details.
 VERBOSE_LOGGING = os.getenv("XR_VERBOSE_LOGGING", "0").strip().lower() in ("1", "true", "yes", "on")
@@ -90,8 +107,8 @@ MESHY_API_KEY = os.getenv("MESHY_API_KEY")
 print("MESHY_API_KEY loaded:", bool(MESHY_API_KEY))
 
 MESHY_BASE = "https://api.meshy.ai"
-MESHY_TEXT2_3D_CREATE = f"{MESHY_BASE}/openapi/v2/text-to-3d"
-MESHY_TEXT2_3D_GET = f"{MESHY_BASE}/openapi/v2/text-to-3d"
+MESHY_TEXT2_3D_CREATE = f"{MESHY_BASE}/openapi/{MESHY_CFG['api_version']}/text-to-3d"
+MESHY_TEXT2_3D_GET = f"{MESHY_BASE}/openapi/{MESHY_CFG['api_version']}/text-to-3d"
 
 # In-memory job tracker for background Meshy tasks
 jobs: Dict[str, Dict[str, Any]] = {}
@@ -103,7 +120,7 @@ pending_commands: Dict[str, Dict[str, Any]] = {}
 # WHISPER
 # =========================
 print("Loading Whisper model...")
-whisper_model = WhisperModel("small", device="cpu", compute_type="int8")
+whisper_model = WhisperModel(SPEECH_CFG["model"], device=SPEECH_CFG["device"], compute_type=SPEECH_CFG["compute_type"])
 print("Whisper model ready.")
 
 # =========================
@@ -465,7 +482,7 @@ def _log_meshy_progress_once(safe: str, phase: str, task_id: str, meshy_status: 
 def _generate_with_meshy_background(prompt: str, name: str, stage: str, art_style: str):
     safe = _safe_name(name)
     out_glb = os.path.join(MODEL_DIR, f"{safe}.glb")
-    stage = "refine" 
+    stage = (stage or MESHY_CFG["default_stage"]).lower()
 
     try:
         if not MESHY_API_KEY:
@@ -478,7 +495,7 @@ def _generate_with_meshy_background(prompt: str, name: str, stage: str, art_styl
 
         preview_task_id = _meshy_create_task(
             mode="preview",
-            payload={"prompt": prompt, "should_remesh": True, "target_formats": ["glb"]},
+            payload={"prompt": prompt, "should_remesh": MESHY_CFG["should_remesh"], "target_formats": ["glb"]},
         )
         _set_job_progress(safe, stage, preview_task_id, "PENDING", 0)
 
@@ -495,7 +512,7 @@ def _generate_with_meshy_background(prompt: str, name: str, stage: str, art_styl
                 break
             if meshy_status in ("FAILED", "CANCELED"):
                 raise RuntimeError(f"Meshy preview failed: {t.get('task_error') or t}")
-            time.sleep(3)
+            time.sleep(MESHY_CFG["poll_seconds"])
 
         if preview_task is None:
             raise RuntimeError("Timed out waiting for Meshy preview task.")
@@ -511,7 +528,7 @@ def _generate_with_meshy_background(prompt: str, name: str, stage: str, art_styl
 
         refine_task_id = _meshy_create_task(
             mode="refine",
-            payload={"preview_task_id": preview_task_id, "enable_pbr": True, "target_formats": ["glb"]},
+            payload={"preview_task_id": preview_task_id, "enable_pbr": MESHY_CFG["enable_pbr"], "target_formats": ["glb"]},
         )
         _set_job_progress(safe, stage, refine_task_id, "PENDING", 0)
 
@@ -528,7 +545,7 @@ def _generate_with_meshy_background(prompt: str, name: str, stage: str, art_styl
                 break
             if meshy_status in ("FAILED", "CANCELED"):
                 raise RuntimeError(f"Meshy refine failed: {t.get('task_error') or t}")
-            time.sleep(3)
+            time.sleep(MESHY_CFG["poll_seconds"])
 
         if refine_task is None:
             raise RuntimeError("Timed out waiting for Meshy refine task.")
@@ -554,7 +571,7 @@ def _generate_with_meshy_background(prompt: str, name: str, stage: str, art_styl
 
 def _make_ai_poster(prompt: str, out_path: str, w: int, h: int):
     result = client.images.generate(
-        model="gpt-image-1",
+        model=OPENAI_CFG["poster_model"],
         prompt=f"Poster artwork, high quality, no text unless requested. {prompt}",
         size="1024x1024",
     )
@@ -567,7 +584,7 @@ def _make_ai_poster(prompt: str, out_path: str, w: int, h: int):
 
 def _make_ai_texture(prompt: str, out_path: str, size_px: int = 1024):
     result = client.images.generate(
-        model="gpt-image-1",
+        model=OPENAI_CFG["texture_model"],
         prompt=f"Seamless tileable texture. Realistic. No perspective. Even lighting. No text. {prompt}",
         size=f"{size_px}x{size_px}",
     )
@@ -982,9 +999,9 @@ def vision_describe(screenshots_b64: list[str], transcript: str, scene_object_na
         })
 
         resp = client.chat.completions.create(
-            model="gpt-4o",
+            model=OPENAI_CFG["vision_model"],
             response_format={"type": "json_object"},
-            max_tokens=700,
+            max_tokens=OPENAI_CFG["vision_max_tokens"],
             messages=[{"role": "user", "content": content}],
         )
         return resp.choices[0].message.content.strip()
@@ -1149,7 +1166,7 @@ def llm_decide(transcript: str, gaze_target: str = "none", vision_context: str =
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_message}
             ],
-            max_completion_tokens=3000,
+            max_completion_tokens=OPENAI_CFG["command_max_completion_tokens"],
         )
 
         raw = response.choices[0].message.content.strip()
@@ -1189,7 +1206,7 @@ async def transcribe_only(
     gaze_target = gaze_target.strip() if gaze_target else "none"
 
     t0 = time.time()
-    segments, _info = whisper_model.transcribe(TEMP_AUDIO_PATH, beam_size=5, task="translate")
+    segments, _info = whisper_model.transcribe(TEMP_AUDIO_PATH, beam_size=SPEECH_CFG["beam_size"], task=SPEECH_CFG["task"])
     transcript = "".join(s.text for s in segments).strip()
     whisper_time = round(time.time() - t0, 3)
     print(f"[Whisper-only] ({whisper_time}s): '{transcript}'")
@@ -1394,7 +1411,7 @@ async def transcribe(
             print(f"[Scene] Failed to parse scene_objects: {e}", flush=True)
 
     t0 = time.perf_counter()
-    segments, _info = whisper_model.transcribe(TEMP_AUDIO_PATH, beam_size=5, task="translate")
+    segments, _info = whisper_model.transcribe(TEMP_AUDIO_PATH, beam_size=SPEECH_CFG["beam_size"], task=SPEECH_CFG["task"])
     transcript = "".join(s.text for s in segments).strip()
     whisper_time = time.perf_counter() - t0
     vprint(f"[Whisper] ({whisper_time:.3f}s): '{transcript}'\n")
@@ -1558,12 +1575,21 @@ def cancel(req: ConfirmRequest):
 # HEALTH CHECK
 # =========================
 
+@app.get("/api/config/models")
+async def public_model_config():
+    # Public model identifiers and tuning only: NEVER expose API keys or .env values.
+    return {"openai": {
+        "code_model": OPENAI_CFG["code_model"],
+        "code_max_tokens": OPENAI_CFG["code_max_tokens"],
+        "code_temperature": OPENAI_CFG["code_temperature"]
+    }}
+
 @app.get("/health")
 async def health():
     return {
         "status": "ok",
         "model": LLM_MODEL,
-        "whisper": "small",
+        "whisper": SPEECH_CFG["model"],
         "meshy": bool(MESHY_API_KEY),
         "openai_images": bool(OPENAI_API_KEY),
     }

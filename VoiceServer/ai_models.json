@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "speech": {
+    "engine": "faster-whisper",
+    "model": "small",
+    "device": "cpu",
+    "compute_type": "int8",
+    "beam_size": 3,
+    "task": "translate"
+  },
+  "openai": {
+    "command_model": "o4-mini",
+    "vision_model": "gpt-4o",
+    "code_model": "gpt-4o",
+    "poster_model": "gpt-image-1",
+    "texture_model": "gpt-image-1",
+    "vision_max_tokens": 700,
+    "command_max_completion_tokens": 3000,
+    "code_max_tokens": 2000,
+    "code_temperature": 0.2
+  },
+  "meshy": {
+    "api_version": "v2",
+    "default_stage": "refine",
+    "should_remesh": true,
+    "enable_pbr": true,
+    "poll_seconds": 3
+  },
+  "optimization": {
+    "skip_vision_without_screenshots": true
+  }
+}
