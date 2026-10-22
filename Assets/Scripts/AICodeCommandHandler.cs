@@ -12,11 +12,20 @@ public class AICodeCommandHandler : MonoBehaviour
     [Header("OpenAI")]
     [Tooltip("Optional: leave empty to load OPENAI_API_KEY from project-root .env")]
     public string openAiApiKey = "";
-    public string model = "gpt-4o";
-    [Tooltip("Python server endpoint; override when server is on another machine")]
-    public string modelConfigUrl = "http://localhost:8000/api/config/models";
-    public int maxTokens = 2000;
-    public float temperature = 0.2f;
+
+    [Header("Model configuration (from ai_models.json via the Python server)")]
+    [Tooltip("Leave empty to derive it from VoiceCaptureAndSend.serverUrl, e.g. http://192.168.0.206:8000/api/config/models")]
+    public string modelConfigUrl = "";
+
+    // Model settings come ONLY from ai_models.json (served by /api/config/models).
+    // They are deliberately not serialized, so no hard-coded or Inspector value can override the config.
+    [NonSerialized] string model = "";
+    [NonSerialized] string reasoningEffort = "";
+    [NonSerialized] int maxTokens = 0;
+    [NonSerialized] float temperature = 0f;
+
+    /// <summary>The code model currently loaded from ai_models.json (empty until loaded).</summary>
+    public string CurrentModel => model;
 
     [Header("UI Feedback (optional)")]
     public TMPro.TextMeshProUGUI statusText;
@@ -72,9 +81,6 @@ public class AICodeCommandHandler : MonoBehaviour
         "  - Prefer transform-based movement/rotation.\n" +
         "  - Do not assume Renderer, Animator, or Rigidbody exists on the same GameObject.\n" +
         "  - If visual changes are needed, prefer GetComponentsInChildren<Renderer>().\n" +
-        "  - For particle effects: build the ParticleSystem entirely in code using AddComponent<ParticleSystem>().\n" +
-        "    Configure all modules (main, emission, shape, colorOverLifetime, sizeOverLifetime, noise,\n" +
-        "    velocityOverLifetime, collision, trails, subEmitters) as appropriate for the effect type.\n" +
         "  - For particle effects: build the ParticleSystem entirely in code using AddComponent<ParticleSystem>().\n" +
         "    Configure all modules (main, emission, shape, colorOverLifetime, sizeOverLifetime, noise,\n" +
         "    velocityOverLifetime, collision, trails, subEmitters) as appropriate for the effect type.\n" +
@@ -155,6 +161,40 @@ public class AICodeCommandHandler : MonoBehaviour
             Debug.Log("[AICodeCommandHandler] Ready.");
     }
 
+    // Model config is fetched once at startup (and lazily if that failed),
+    // instead of an HTTP round trip before every code request.
+    bool _configLoaded;
+
+    void Start()
+    {
+        if (string.IsNullOrWhiteSpace(modelConfigUrl))
+            modelConfigUrl = DeriveConfigUrl();
+
+        StartCoroutine(RefreshModelConfig());
+    }
+
+    /// <summary>
+    /// Builds the config URL from the same server VoiceCaptureAndSend talks to,
+    /// so clients on other machines do not silently hit their own localhost.
+    /// </summary>
+    static string DeriveConfigUrl()
+    {
+        var voice = FindFirstObjectByType<VoiceCaptureAndSend>();
+        if (voice != null && !string.IsNullOrWhiteSpace(voice.serverUrl))
+        {
+            try
+            {
+                var uri = new Uri(voice.serverUrl);
+                return uri.GetLeftPart(UriPartial.Authority) + "/api/config/models";
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[AICodeCommandHandler] Could not parse VoiceCaptureAndSend.serverUrl: " + ex.Message);
+            }
+        }
+        return "http://localhost:8000/api/config/models";
+    }
+
     // ------------------------------------------------------------------ public API
 
     /// <summary>
@@ -218,26 +258,8 @@ public class AICodeCommandHandler : MonoBehaviour
             return;
         }
 
-        // ── Guardrail: poster resizes never go to the LLM ─────────────────────
-        // Deterministic + parent-safe path handles them on the LOCKED poster.
-        if (!isReplay && LooksLikeScaleIntent(behaviourPrompt))
-        {
-            var gaze = FindFirstObjectByType<GazeTargetInteractor>();
-
-            bool targetIsPoster = target.GetComponentInParent<PersistablePoster>() != null;
-            bool lockedIsPoster = gaze != null && gaze.LockedTarget != null &&
-                                  gaze.LockedTarget.GetComponent<PersistablePoster>() != null;
-
-            // Fire if the resolved target is a poster, OR a poster is currently selected
-            // (covers the case where the name-based target wrongly resolved to the wall).
-            if (gaze != null && (targetIsPoster || lockedIsPoster))
-            {
-                gaze.ScaleGazedBy(ExtractScaleFactor(behaviourPrompt));
-                Log("Poster resize routed to deterministic scaler (LLM bypassed).");
-                onCompleted?.Invoke(true);
-                return;
-            }
-        }
+        // All commands, including poster resizing, go through GPT code generation.
+        // The code-generation system prompt restricts changes to the exact target.
 
         if (string.IsNullOrWhiteSpace(openAiApiKey))
         {
@@ -389,8 +411,19 @@ public GameObject ResolveTarget(string command)
 
         // Model settings are fetched from the shared Python config endpoint.
         // A failed GET leaves the Inspector/default values intact.
-        if (!string.IsNullOrWhiteSpace(modelConfigUrl))
+        // The code model must come from ai_models.json. If the config has not been
+        // loaded yet (server was down at startup), try again; never fall back to a
+        // hard-coded model.
+        for (int i = 0; i < 3 && !_configLoaded; i++)
             yield return StartCoroutine(RefreshModelConfig());
+
+        if (!_configLoaded)
+        {
+            Log("Model config could not be loaded from " + modelConfigUrl +
+                " — is the Python server running? Code generation skipped.");
+            onCompleted?.Invoke(false);
+            yield break;
+        }
 
         // Up to 2 attempts: first normal, second with compile errors fed back to GPT
         string lastCode = null;
@@ -782,6 +815,7 @@ public GameObject ResolveTarget(string command)
         public string code_model;
         public int code_max_tokens;
         public float code_temperature;
+        public string code_reasoning_effort;
     }
     [Serializable]
     class RuntimeModelConfigResponse
@@ -791,32 +825,45 @@ public GameObject ResolveTarget(string command)
 
     IEnumerator RefreshModelConfig()
     {
+        if (string.IsNullOrWhiteSpace(modelConfigUrl))
+            modelConfigUrl = DeriveConfigUrl();
+
         using (var req = UnityWebRequest.Get(modelConfigUrl))
         {
-            req.timeout = 3;
+            req.timeout = 5;
             yield return req.SendWebRequest();
             if (req.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogWarning("[AICodeCommandHandler] Model config unavailable; using existing values: " + req.error);
+                Debug.LogWarning("[AICodeCommandHandler] Model config unavailable at " + modelConfigUrl + ": " + req.error);
                 yield break;
             }
+            RuntimeModelConfigResponse settings = null;
             try
             {
-                var settings = JsonUtility.FromJson<RuntimeModelConfigResponse>(req.downloadHandler.text);
-                if (settings != null && settings.openai != null)
-                {
-                    if (!string.IsNullOrWhiteSpace(settings.openai.code_model))
-                        model = settings.openai.code_model;
-                    if (settings.openai.code_max_tokens > 0)
-                        maxTokens = settings.openai.code_max_tokens;
-                    if (settings.openai.code_temperature >= 0 && settings.openai.code_temperature <= 2)
-                        temperature = settings.openai.code_temperature;
-                }
+                settings = JsonUtility.FromJson<RuntimeModelConfigResponse>(req.downloadHandler.text);
             }
             catch (Exception ex)
             {
                 Debug.LogWarning("[AICodeCommandHandler] Invalid model config: " + ex.Message);
             }
+
+            if (settings == null || settings.openai == null ||
+                string.IsNullOrWhiteSpace(settings.openai.code_model))
+            {
+                Debug.LogWarning("[AICodeCommandHandler] Model config has no openai.code_model: " + req.downloadHandler.text);
+                yield break;
+            }
+
+            model = settings.openai.code_model;
+            maxTokens = settings.openai.code_max_tokens > 0 ? settings.openai.code_max_tokens : 3500;
+            temperature = (settings.openai.code_temperature >= 0 && settings.openai.code_temperature <= 2)
+                ? settings.openai.code_temperature : 0.2f;
+            reasoningEffort = string.IsNullOrWhiteSpace(settings.openai.code_reasoning_effort)
+                ? "low" : settings.openai.code_reasoning_effort;
+
+            _configLoaded = true;
+            Debug.Log($"[AICodeCommandHandler] Code model from ai_models.json: {model} " +
+                      $"(effort={reasoningEffort}, max_tokens={maxTokens})");
         }
     }
 
@@ -827,8 +874,14 @@ public GameObject ResolveTarget(string command)
         string u = EscapeJson(user);
         string t = temperature.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-        return "{\"model\":\"" + model + "\",\"max_tokens\":" + maxTokens +
-               ",\"temperature\":" + t +
+        // GPT-5 family uses max_completion_tokens; omit temperature when reasoning is enabled.
+        bool reasoningModel = model.StartsWith("gpt-5", StringComparison.OrdinalIgnoreCase) ||
+                              model.StartsWith("gpt-6", StringComparison.OrdinalIgnoreCase);
+        string paramsJson = reasoningModel
+            ? "\"max_completion_tokens\":" + maxTokens +
+              ",\"reasoning_effort\":\"" + EscapeJson(reasoningEffort) + "\""
+            : "\"max_tokens\":" + maxTokens + ",\"temperature\":" + t;
+        return "{\"model\":\"" + EscapeJson(model) + "\"," + paramsJson +
                ",\"messages\":[{\"role\":\"system\",\"content\":\"" + s +
                "\"},{\"role\":\"user\",\"content\":\"" + u + "\"}]}";
     }

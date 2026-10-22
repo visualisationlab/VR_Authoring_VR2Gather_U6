@@ -1,4 +1,4 @@
-﻿// =============================================================================
+// =============================================================================
 // VoiceCaptureAndSend.cs
 // Records voice → sends to server → server runs Whisper (auto-translates to
 // English) → LLM decides an action → Unity dispatches the result.
@@ -10,6 +10,7 @@
 //   scale            – proportional deterministic scaling
 //   set_dimensions   – absolute deterministic world dimensions
 //   run_code         – custom runtime C# behaviour (never resizing)
+//   animate_model    – rig a humanoid model with Meshy and play a library animation
 //   no_action        – nothing to do
 // =============================================================================
 
@@ -29,6 +30,9 @@ public class VoiceCaptureAndSend : MonoBehaviour
     // ─────────────────────────────────────────────────────────────────────────
     // Inspector fields
     // ─────────────────────────────────────────────────────────────────────────
+
+    [Header("GPT-Live-Transcribe (optional)")]
+    public LiveTranscriptionBridge liveTranscription;
 
     [Header("Microphone")]
     public string microphoneDevice;
@@ -318,7 +322,8 @@ public class VoiceCaptureAndSend : MonoBehaviour
         // For poster, texture, run_code, etc. the dialog shows elapsed time only.
         if (_isExecutingCleanAction &&
             _showPercentForCurrentAction &&
-            (j.type == "model" || j.type == "model+code"))
+            (j.type == "model" || j.type == "model+code" ||
+             j.type == "animate" || j.type == "model+animate"))
         {
             _lastCleanProgressPercent = j.progress;
             UpdateCleanExecutionProgress();
@@ -537,6 +542,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
         }
 
         if (action == "generate_model") return "Generating 3D model";
+        if (action == "animate_model") return "Animating model";
         if (action == "create_poster") return "Creating poster";
         if (action == "set_wall_texture") return "Applying texture";
         if (action == "scale" || action == "set_dimensions") return "Resizing object";
@@ -557,7 +563,8 @@ public class VoiceCaptureAndSend : MonoBehaviour
         return action == "generate_model" ||
                action == "create_poster" ||
                action == "set_wall_texture" ||
-               action == "run_code";
+               action == "run_code" ||
+               action == "animate_model";
     }
 
 
@@ -576,7 +583,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
             ? cmd.action.Trim().ToLowerInvariant()
             : "";
 
-        _showPercentForCurrentAction = action == "generate_model";
+        _showPercentForCurrentAction = action == "generate_model" || action == "animate_model";
 
         UpdateCleanExecutionProgress();
     }
@@ -702,6 +709,9 @@ public class VoiceCaptureAndSend : MonoBehaviour
         public string[] targets;
         public string[] reference_objects;
         public string   relation;
+
+        // animate_model
+        public string   animation;
     }
 
     [System.Serializable]
@@ -788,6 +798,14 @@ public class VoiceCaptureAndSend : MonoBehaviour
     {
         public string image_url;
         public string message;
+    }
+
+    [System.Serializable]
+    private class AnimateModelRequest
+    {
+        public string name;
+        public string animation;
+        public float  height_meters = 1.7f;
     }
 
     [System.Serializable]
@@ -943,6 +961,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
 
         recordedClip = Microphone.Start(microphoneDevice, false, maxRecordLengthSeconds, sampleRate);
         isRecording = true;
+        if (liveTranscription != null) liveTranscription.Begin(recordedClip, microphoneDevice, sampleRate);
 
         _isExecutingCleanAction = false;
         _currentActionLabel = "";
@@ -1022,6 +1041,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
         int position = Microphone.GetPosition(microphoneDevice);
         Microphone.End(microphoneDevice);
         isRecording = false;
+        if (liveTranscription != null) liveTranscription.StopCapture(position);
 
         if (position <= 0 || recordedClip == null) { SetHeaderLine("No audio captured."); return; }
 
@@ -1081,15 +1101,24 @@ public class VoiceCaptureAndSend : MonoBehaviour
     IEnumerator SendAudioToServer(byte[] wavData, string gazeTargetName, WallAnchor wallAnchor,
                                   int voiceJobId, float requestStartTime)
     {
+        string liveText = null;
+        if (liveTranscription != null && liveTranscription.IsLiveActive)
+        {
+            yield return liveTranscription.Finish();
+            liveText = liveTranscription.FinalTranscript;
+        }
         WWWForm form = new WWWForm();
-        form.AddBinaryData("audio",       wavData, "recording.wav", "audio/wav");
+        if (!string.IsNullOrWhiteSpace(liveText))
+            form.AddField("transcript_override", liveText);
+        else
+            form.AddBinaryData("audio", wavData, "recording.wav", "audio/wav");
         form.AddField     ("gaze_target", gazeTargetName);
 
         // Send all screenshots collected during recording as a JSON array
-        string screenshotsJson = "[" + string.Join(",", System.Array.ConvertAll(
-            _capturedScreenshots.ToArray(),
-            s => "\"" + s + "\""
-        )) + "]";
+        // Send only the last 2 screenshots: enough for grounding, smaller upload and fewer vision tokens
+        int skip = Mathf.Max(0, _capturedScreenshots.Count - 2);
+        var recentShots = _capturedScreenshots.GetRange(skip, _capturedScreenshots.Count - skip);
+        string screenshotsJson = "[" + string.Join(",", recentShots.ConvertAll(s => "\"" + s + "\"")) + "]";
         form.AddField("screenshots_b64", screenshotsJson);
 
         // Send all scene GameObject names so the server LLM can resolve
@@ -1265,6 +1294,37 @@ public class VoiceCaptureAndSend : MonoBehaviour
         // Do NOT execute both immediately. The run_code target does not exist yet,
         // so it would fall back to the gaze target (often Floor) and attach there.
         // Instead: generate/spawn first, wait until the object appears, then attach code.
+        // Special case: generate_model + animate_model on the same new object
+        // ("create a soldier that is walking"): generate first, then rig and animate it.
+        if (commands != null && commands.Length >= 2)
+        {
+            Command genA = null, animA = null;
+            foreach (var c in commands)
+            {
+                if (c == null || string.IsNullOrWhiteSpace(c.action)) continue;
+                string a = c.action.Trim().ToLowerInvariant();
+                if (genA == null && a == "generate_model") genA = c;
+                else if (animA == null && a == "animate_model") animA = c;
+            }
+
+            if (genA != null && animA != null)
+            {
+                string genNameA = string.IsNullOrWhiteSpace(genA.name) ? "Generated_01" : genA.name.Trim();
+                if (CommandTargets(animA, genNameA))
+                {
+                    int jobId = StartJob("model+animate", "GENERATING_MODEL", null, requestStartTime);
+                    StartCoroutine(GenerateAndAnimate_Job(jobId, genA, genNameA, animA.animation));
+
+                    if (stateStore != null) stateStore.RequestSave();
+                    FinishJob(voiceJobId, true, "dispatched_model_then_animation");
+                    SetCurrentDispatchLatency(dispatchStartTime);
+                    _headerLine = "";
+                    RefreshJobsUI();
+                    return;
+                }
+            }
+        }
+
         if (commands != null && commands.Length >= 2)
         {
             Command gen = null;
@@ -1308,7 +1368,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
                 if (codeTargetsGeneratedObject)
                 {
                     string genPrompt = string.IsNullOrWhiteSpace(gen.prompt) ? "simple object" : gen.prompt;
-                    string stage     = string.IsNullOrWhiteSpace(gen.stage) ? "preview" : gen.stage;
+                    string stage     = string.IsNullOrWhiteSpace(gen.stage) ? "refine"  : gen.stage;
                     string style     = string.IsNullOrWhiteSpace(gen.art_style) ? "realistic" : gen.art_style;
                     string behaviour = string.IsNullOrWhiteSpace(code.behaviour_prompt)
                         ? "place the generated object in the requested location"
@@ -1468,7 +1528,7 @@ public class VoiceCaptureAndSend : MonoBehaviour
 
                 string p     = string.IsNullOrWhiteSpace(cmd.prompt)    ? "simple cube"   : cmd.prompt;
                 string n     = string.IsNullOrWhiteSpace(cmd.name)      ? "Generated_01"  : cmd.name;
-                string stage = string.IsNullOrWhiteSpace(cmd.stage)     ? "preview"       : cmd.stage;
+                string stage = string.IsNullOrWhiteSpace(cmd.stage)     ? "refine"        : cmd.stage;
                 string style = string.IsNullOrWhiteSpace(cmd.art_style) ? "realistic"     : cmd.art_style;
 
                 int     jobId = StartJob("model", "PENDING", null);
@@ -1754,7 +1814,33 @@ public class VoiceCaptureAndSend : MonoBehaviour
                     return true;
                 }
 
-            // ── 7. no_action ─────────────────────────────────────────────
+            // ── 7. animate_model (Meshy rigging + animation) ─────────────
+            case "animate_model":
+                {
+                    if (modelSpawner == null)
+                    {
+                        Debug.LogError("[VoiceCaptureAndSend] animate_model: RuntimeModelSpawner missing.");
+                        return false;
+                    }
+
+                    GameObject targetObj = ResolveDeterministicTarget(cmd);
+                    if (targetObj == null)
+                    {
+                        Debug.LogWarning("[VoiceCaptureAndSend] animate_model: target could not be resolved.");
+                        SetHeaderLine("Target not found.");
+                        return false;
+                    }
+
+                    // The animated GLB replaces the whole model, so act on the model root.
+                    AIControllable ai = ResolveDeterministicAI(targetObj);
+                    GameObject modelRoot = ai != null ? ai.gameObject : targetObj;
+
+                    int jobId = StartJob("animate", "PENDING", modelRoot);
+                    StartCoroutine(AnimateModel_Job(jobId, modelRoot, cmd.animation));
+                    return true;
+                }
+
+            // ── 8. no_action ─────────────────────────────────────────────
             case "no_action":
                 SetIntentClean(cmd);
                 SetStatusText("No action needed.");
@@ -1834,8 +1920,8 @@ public class VoiceCaptureAndSend : MonoBehaviour
         UpdateJob(jobId, "GENERATING_MODEL", 5);
         modelSpawner.GenerateAndSpawn(genPrompt, genName, pos, stage, artStyle);
 
-        // Meshy can sit at 99% for a while, so give this enough time.
-        const float timeout = 360f;
+        // Preview + textured refine can take several minutes; Meshy can also sit at 99% for a while.
+        const float timeout = 900f;
         float elapsed = 0f;
         GameObject spawnedObj = null;
 
@@ -1909,6 +1995,139 @@ public class VoiceCaptureAndSend : MonoBehaviour
 
         UpdateJob(jobId, "CODE_ATTACHED", 100);
         FinishJob(jobId, true, $"generated '{genName}' + code attached and executed");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Async: Rig + animate an existing model (Meshy)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static bool CommandTargets(Command cmd, string name)
+    {
+        if (cmd == null || string.IsNullOrWhiteSpace(name)) return false;
+        if (cmd.targets != null)
+            foreach (string t in cmd.targets)
+                if (!string.IsNullOrWhiteSpace(t) &&
+                    string.Equals(t.Trim(), name, System.StringComparison.OrdinalIgnoreCase))
+                    return true;
+        return !string.IsNullOrWhiteSpace(cmd.target) &&
+               string.Equals(cmd.target.Trim(), name, System.StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void FailAnimation(int jobId, string message)
+    {
+        Debug.LogWarning("[VoiceCaptureAndSend] Animation failed: " + message);
+        FinishJob(jobId, false, message);
+        string shortMsg = string.IsNullOrEmpty(message) ? "" :
+            (message.Length > 160 ? message.Substring(0, 157) + "..." : message);
+        SetStatusText("Animation failed\n\n" + shortMsg);
+    }
+
+    /// <summary>
+    /// Polls /api/animate-model until the rigged/animated GLB is ready, then swaps it in.
+    /// progressFrom lets a preceding generation step own the first part of the progress bar.
+    /// </summary>
+    private IEnumerator AnimateModel_Job(int jobId, GameObject model, string animation, int progressFrom = 0)
+    {
+        if (model == null) { FailAnimation(jobId, "Model no longer exists."); yield break; }
+
+        string endpoint = BuildServerEndpoint("/api/animate-model");
+        string modelName = model.name;
+        byte[] bodyRaw = Encoding.UTF8.GetBytes(JsonUtility.ToJson(
+            new AnimateModelRequest { name = modelName, animation = animation ?? "" }));
+
+        string downloadUrl = null;
+        float deadline = Time.realtimeSinceStartup + 900f;   // rigging + animation can take minutes
+
+        while (Time.realtimeSinceStartup < deadline)
+        {
+            using (UnityWebRequest www = new UnityWebRequest(endpoint, "POST"))
+            {
+                www.uploadHandler   = new UploadHandlerRaw(bodyRaw);
+                www.downloadHandler = new DownloadHandlerBuffer();
+                www.SetRequestHeader("Content-Type", "application/json");
+                yield return www.SendWebRequest();
+
+                // Error responses (404/500) also carry a JSON message, so parse either way.
+                TextTo3DProgressResponse resp = null;
+                try { resp = JsonUtility.FromJson<TextTo3DProgressResponse>(www.downloadHandler.text); }
+                catch { }
+
+                if (resp == null)
+                {
+                    if (www.result != UnityWebRequest.Result.Success)
+                    {
+                        FailAnimation(jobId, "Server unreachable: " + www.error);
+                        yield break;
+                    }
+                }
+                else
+                {
+                    string st = string.IsNullOrEmpty(resp.status) ? "IN_PROGRESS" : resp.status.Trim().ToUpperInvariant();
+                    if (st == "FAILED" || st == "ERROR")
+                    {
+                        FailAnimation(jobId, string.IsNullOrEmpty(resp.message) ? "Rigging/animation failed." : resp.message);
+                        yield break;
+                    }
+
+                    int pct = progressFrom + Mathf.RoundToInt((100 - progressFrom) * Mathf.Clamp01(resp.progress / 100f));
+                    UpdateJob(jobId, st, Mathf.Min(pct, 99));
+
+                    if (!string.IsNullOrEmpty(resp.downloadUrl) && (st == "SUCCEEDED" || resp.progress >= 100))
+                    {
+                        downloadUrl = resp.downloadUrl;
+                        break;
+                    }
+                }
+            }
+
+            yield return new WaitForSeconds(2f);
+        }
+
+        if (string.IsNullOrEmpty(downloadUrl)) { FailAnimation(jobId, "Timed out waiting for the animated model."); yield break; }
+        if (model == null) { FailAnimation(jobId, "Model was removed while it was being animated."); yield break; }
+
+        bool done = false, ok = false;
+        modelSpawner.ReplaceWithAnimatedModel(model, downloadUrl, success => { ok = success; done = true; });
+        while (!done) yield return null;
+
+        if (!ok) { FailAnimation(jobId, "Could not load the animated model."); yield break; }
+
+        if (stateStore != null) stateStore.RequestSave();
+        UpdateJob(jobId, "ANIMATED", 100);
+        FinishJob(jobId, true, $"animated '{modelName}'");
+    }
+
+    /// <summary>generate_model + animate_model on the same new object.</summary>
+    private IEnumerator GenerateAndAnimate_Job(int jobId, Command gen, string genName, string animation)
+    {
+        if (modelSpawner == null) { FailAnimation(jobId, "RuntimeModelSpawner missing."); yield break; }
+
+        string prompt = string.IsNullOrWhiteSpace(gen.prompt) ? "character" : gen.prompt;
+        string stage  = string.IsNullOrWhiteSpace(gen.stage) ? "refine" : gen.stage;
+        string style  = string.IsNullOrWhiteSpace(gen.art_style) ? "realistic" : gen.art_style;
+
+        UpdateJob(jobId, "GENERATING_MODEL", 2);
+        modelSpawner.GenerateAndSpawn(prompt, genName, GetPlacementPosition(), stage, style);
+
+        const float timeout = 900f;   // textured generation can take several minutes
+        float elapsed = 0f;
+        GameObject spawned = null;
+        while (elapsed < timeout)
+        {
+            yield return new WaitForSeconds(1f);
+            elapsed += 1f;
+
+            spawned = FindGameObjectCaseInsensitive(genName);
+            if (spawned != null && spawned.activeInHierarchy) break;
+
+            UpdateJob(jobId, "GENERATING_MODEL", Mathf.Clamp(Mathf.RoundToInt(elapsed / timeout * 60f), 2, 60));
+        }
+
+        if (spawned == null) { FailAnimation(jobId, $"'{genName}' never appeared after {timeout:0}s"); yield break; }
+        yield return null;
+
+        // Same job id: the animation step continues the progress bar from 60 %.
+        yield return AnimateModel_Job(jobId, spawned, animation, progressFrom: 60);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

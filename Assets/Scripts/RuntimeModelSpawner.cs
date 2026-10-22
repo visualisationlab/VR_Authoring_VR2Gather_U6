@@ -284,7 +284,11 @@ public class RuntimeModelSpawner : MonoBehaviour
 
         string safeId = string.IsNullOrEmpty(networkId) ? Sanitize(modelName) : Sanitize(networkId);
         string safeName = string.IsNullOrEmpty(modelName) ? safeId : Sanitize(modelName);
-        string localPath = Path.Combine(ModelsDir, safeId + ".glb");
+        // Cache by the served file name, so an animated version (<id>__<clip>.glb)
+        // never reuses the cached static <id>.glb.
+        string urlFile = null;
+        try { urlFile = Path.GetFileName(new Uri(downloadUrl).AbsolutePath); } catch { }
+        string localPath = Path.Combine(ModelsDir, string.IsNullOrEmpty(urlFile) ? safeId + ".glb" : Sanitize(urlFile));
 
         if (!File.Exists(localPath))
         {
@@ -325,6 +329,15 @@ public class RuntimeModelSpawner : MonoBehaviour
 
         if (spawnedGo != null)
         {
+            // If this network id already exists (e.g. the static version of a model that
+            // has now been animated), the new model replaces it.
+            foreach (var other in FindObjectsByType<VRT.Pilots.Common.NetworkedAIObjectSync>(FindObjectsSortMode.None))
+            {
+                if (other != null && other.gameObject != spawnedGo && Convert.ToString(other.NetworkId) == safeId)
+                    Destroy(other.gameObject);
+            }
+            yield return null;
+
             EnsureNetworkIdentity(spawnedGo, safeId);
 
             SaveRecord(new SpawnRecord
@@ -359,7 +372,9 @@ public class RuntimeModelSpawner : MonoBehaviour
         var import = new GltfImport();
         string uri = new Uri(localGlbPath).AbsoluteUri;
 
-        var loadTask = import.Load(uri);
+        // Import animation clips (rigged/animated GLBs from Meshy). Static models are unaffected.
+        var importSettings = new ImportSettings { AnimationMethod = AnimationMethod.Legacy };
+        var loadTask = import.Load(uri, importSettings);
         while (!loadTask.IsCompleted) yield return null;
 
         bool success = false;
@@ -392,6 +407,9 @@ public class RuntimeModelSpawner : MonoBehaviour
         while (!instTask.IsCompleted) yield return null;
 
         yield return null;
+
+        // Loop any animation that came with the GLB (no-op for static models).
+        StartLoopingAnimation(go);
 
         if (applyAutoPlacement && autoNormalizeSize)
         {
@@ -462,6 +480,148 @@ public class RuntimeModelSpawner : MonoBehaviour
         );
 
         onDone?.Invoke(go);
+    }
+
+    /// <summary>Plays the first animation clip of an imported GLB on a loop.</summary>
+    static void StartLoopingAnimation(GameObject go)
+    {
+        var anim = go.GetComponentInChildren<Animation>(true);
+        if (anim == null) return;
+
+        AnimationClip first = null;
+        foreach (AnimationState state in anim)
+        {
+            state.wrapMode = WrapMode.Loop;
+            if (first == null) first = state.clip;
+        }
+        if (anim.clip == null) anim.clip = first;
+        if (anim.clip == null) return;
+
+        anim.wrapMode = WrapMode.Loop;
+        anim.cullingType = AnimationCullingType.AlwaysAnimate;
+        anim.playAutomatically = true;
+        anim.Play(anim.clip.name);
+
+        // Skinned meshes move away from their bind-pose bounds while animating.
+        foreach (var smr in go.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            smr.updateWhenOffscreen = true;
+
+        Debug.Log($"[RuntimeModelSpawner] Playing animation '{anim.clip.name}' on '{go.name}'");
+    }
+
+    /// <summary>
+    /// Replaces a spawned model with its rigged/animated version (from /api/animate-model),
+    /// keeping the same name, position, height, network id and saved behaviour prompt.
+    /// </summary>
+    public void ReplaceWithAnimatedModel(GameObject oldGo, string downloadUrl, Action<bool> onDone = null)
+    {
+        StartCoroutine(ReplaceWithAnimatedModelCo(oldGo, downloadUrl, onDone));
+    }
+
+    IEnumerator ReplaceWithAnimatedModelCo(GameObject oldGo, string downloadUrl, Action<bool> onDone)
+    {
+        if (oldGo == null || string.IsNullOrEmpty(downloadUrl))
+        {
+            onDone?.Invoke(false);
+            yield break;
+        }
+
+        string modelName = oldGo.name;
+        string fileName = null;
+        try { fileName = Path.GetFileName(new Uri(downloadUrl).AbsolutePath); } catch { }
+        if (string.IsNullOrEmpty(fileName)) fileName = modelName + "__animated.glb";
+        string localPath = Path.Combine(ModelsDir, Sanitize(fileName));
+
+        using (var dl = UnityWebRequest.Get(downloadUrl))
+        {
+            Debug.Log("[RuntimeModelSpawner] Downloading animated model: " + downloadUrl);
+            yield return dl.SendWebRequest();
+
+            if (dl.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError($"[RuntimeModelSpawner] Animated model download failed: {dl.error}");
+                onDone?.Invoke(false);
+                yield break;
+            }
+
+            try
+            {
+                File.WriteAllBytes(localPath, dl.downloadHandler.data);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("[RuntimeModelSpawner] Failed writing animated GLB: " + e + "\nPath=" + localPath);
+                onDone?.Invoke(false);
+                yield break;
+            }
+        }
+
+        if (oldGo == null) { onDone?.Invoke(false); yield break; }   // deleted while downloading
+
+        // Remember where and how big the old model is, so the animated one replaces it in place.
+        bool hadBounds = TryGetCombinedRendererBounds(oldGo, out Bounds oldBounds);
+        Vector3 oldPos = oldGo.transform.position;
+        Vector3 oldEuler = oldGo.transform.eulerAngles;
+
+        var reg = LoadRegistry();
+        var oldRec = reg.items.Find(x => x.name == modelName);
+        string prompt = oldRec != null && !string.IsNullOrEmpty(oldRec.prompt) ? oldRec.prompt : modelName;
+        string behaviourPrompt = oldRec != null ? (oldRec.behaviourPrompt ?? "") : "";
+
+        GameObject newGo = null;
+        yield return LoadGlbIntoScene(
+            localPath,
+            modelName + "__loading",
+            prompt,
+            oldPos,
+            applyAutoPlacement: false,
+            forcedEulerRotation: oldEuler,
+            forcedScale: null,
+            onDone: go => { newGo = go; }
+        );
+
+        if (newGo == null)
+        {
+            onDone?.Invoke(false);
+            yield break;
+        }
+
+        // Match the old model's height, footprint centre and ground contact.
+        if (hadBounds && TryGetCombinedRendererBounds(newGo, out Bounds nb) && nb.size.y > 0.0001f)
+        {
+            newGo.transform.localScale *= oldBounds.size.y / nb.size.y;
+            if (TryGetCombinedRendererBounds(newGo, out nb))
+            {
+                newGo.transform.position += new Vector3(
+                    oldBounds.center.x - nb.center.x,
+                    oldBounds.min.y - nb.min.y,
+                    oldBounds.center.z - nb.center.z);
+            }
+        }
+
+        if (oldGo != null) Destroy(oldGo);
+        yield return null;   // let Destroy finish so name lookups only find the new model
+        newGo.name = modelName;
+
+        string networkId = Sanitize(modelName);
+        EnsureNetworkIdentity(newGo, networkId);
+
+        var assetSync = FindFirstObjectByType<VRT.Pilots.Common.NetworkedAIAssetSync>();
+        if (assetSync != null)
+            assetSync.SendModelCreated(networkId, modelName, prompt, downloadUrl, newGo.transform);
+
+        SaveRecord(new SpawnRecord
+        {
+            name = modelName,
+            prompt = prompt,
+            localGlbPath = localPath,
+            position = newGo.transform.position,
+            eulerRotation = newGo.transform.eulerAngles,
+            scale = newGo.transform.localScale,
+            behaviourPrompt = behaviourPrompt
+        });
+
+        onDone?.Invoke(true);
     }
 
     void EnsureNetworkIdentity(GameObject go, string networkId)

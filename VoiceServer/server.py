@@ -1,22 +1,25 @@
-﻿# =========================
+# =========================
 # LLM-DRIVEN XR SERVER
 # No keywords — pure natural language -> LLM -> Unity commands
 # Includes: Meshy.ai 3D generation, OpenAI image/texture generation
 # =========================
 
-from fastapi import FastAPI, File, Form, UploadFile, BackgroundTasks
+from fastapi import FastAPI, File, Form, UploadFile, BackgroundTasks, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 from PIL import Image, ImageDraw
-import os, json, re, time, base64, io, socket
+import os, json, re, time, base64, io, socket, tempfile
 from datetime import datetime
 from faster_whisper import WhisperModel
 from openai import OpenAI
 from dotenv import load_dotenv
 import requests
 import uuid as _uuid
+import asyncio
+import websockets
+from fastapi import Body
 
 load_dotenv()
 
@@ -120,7 +123,37 @@ pending_commands: Dict[str, Dict[str, Any]] = {}
 # WHISPER
 # =========================
 print("Loading Whisper model...")
-whisper_model = WhisperModel(SPEECH_CFG["model"], device=SPEECH_CFG["device"], compute_type=SPEECH_CFG["compute_type"])
+whisper_model = None
+if SPEECH_CFG.get("engine") == "faster-whisper":
+    whisper_model = WhisperModel(SPEECH_CFG["model"], device=SPEECH_CFG["device"], compute_type=SPEECH_CFG["compute_type"])
+
+def transcribe_audio_bytes(audio_bytes: bytes) -> str:
+    """Transcribe finalized WAV bytes; realtime streaming requires a separate socket pipeline."""
+    global whisper_model
+    engine = SPEECH_CFG.get("engine", "faster-whisper")
+    if engine == "openai_batch":
+        f = io.BytesIO(audio_bytes)
+        f.name = "voice.wav"
+        try:
+            result = client.audio.transcriptions.create(model=SPEECH_CFG["model"], file=f)
+            return result.text.strip()
+        except Exception as ex:
+            print("[Transcription API failed; fallback to local Whisper]", ex, flush=True)
+            engine = SPEECH_CFG.get("fallback_engine", "faster-whisper")
+    if engine != "faster-whisper":
+        raise ValueError("Unsupported speech.engine. Use openai_batch or faster-whisper. Streaming requires a WebSocket client/server workflow.")
+    if whisper_model is None:
+        whisper_model = WhisperModel(SPEECH_CFG.get("fallback_model", "small"), device=SPEECH_CFG["device"], compute_type=SPEECH_CFG["compute_type"])
+    # Unique audio file so two concurrent users cannot overwrite each other's recordings.
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        tmp.write(audio_bytes)
+        wav_path = tmp.name
+    try:
+        segments, _ = whisper_model.transcribe(wav_path, beam_size=SPEECH_CFG.get("beam_size", 3), task=SPEECH_CFG.get("task", "transcribe"))
+        return "".join(segment.text for segment in segments).strip()
+    finally:
+        try: os.unlink(wav_path)
+        except OSError: pass
 print("Whisper model ready.")
 
 # =========================
@@ -198,6 +231,16 @@ CRITICAL: If you output ANYTHING other than a raw JSON object, the entire pipeli
 7. no_action
    - Use when the input is purely conversational, unclear, or no XR action should happen.
 
+8. animate_model
+   - Use ONLY for skeletal (rigged) character animation of a HUMANOID, two-legged character model:
+     walk, run, jog, dance, wave, jump, idle, fight, punch, kick, sit and similar body motions.
+   - Required fields:
+     - "targets": array with the exact name of the character model to animate.
+     - "animation": short motion name, e.g. "walk", "run", "dance", "wave", "idle", "punch".
+       Use "" to only add a skeleton (rig) without playing a motion.
+   - Rigging only works on humanoid characters. For non-humanoid objects (cars, trees, furniture,
+     animals, buildings) use run_code for procedural motion (spin, bob, sway, move) instead.
+
 === OUTPUT FORMAT ===
 {
   "commands": [
@@ -243,6 +286,7 @@ Resolution rules (apply in order):
 - If VISION_CONTEXT identifies two visible cubes as Cube and Cube.001, do not collapse them into one object. Use both.
 
 === CORE RULES ===
+- Use animate_model ONLY for skeletal animation of humanoid characters (walk, run, dance, wave...).
 - Use generate_model ONLY for generating new 3D objects/models from text.
 - Use create_poster ONLY for poster/image generation.
 - Use set_wall_texture ONLY for texture generation/application.
@@ -381,6 +425,17 @@ User: "place a cube between these two cubes"
 VISION_CONTEXT: {"primary_references":["Cube","Cube.001"]}
 {"commands":[{"action":"run_code","targets":[],"reference_objects":["Cube","Cube.001"],"relation":"between","behaviour_prompt":"on Start, create a new Unity cube primitive named Generated_Cube at the midpoint between Cube and Cube.001 using renderer bounds, set scale to Vector3.one, and ground it on the nearest floor surface"}]}
 
+User: "make this character dance"
+GAZE_TARGET: "Generated_Woman"
+{"commands":[{"action":"animate_model","targets":["Generated_Woman"],"animation":"dance"}]}
+
+User: "create a soldier that is walking"
+{"commands":[{"action":"generate_model","prompt":"soldier, full body, standing","name":"Generated_Soldier","stage":"refine"},{"action":"animate_model","targets":["Generated_Soldier"],"animation":"walk"}]}
+
+User: "make the car spin"
+GAZE_TARGET: "Generated_Car"
+{"commands":[{"action":"run_code","targets":["Generated_Car"],"reference_objects":[],"relation":null,"behaviour_prompt":"in Update, rotate Generated_Car continuously around its Y axis at 45 degrees per second"}]}
+
 User: "hello how are you"
 {"commands":[{"action":"no_action","reason":"conversational input, no XR action needed"}]}
 """
@@ -433,7 +488,7 @@ def _download_to_file(url: str, out_path: str):
         f.write(r.content)
 
 
-def _set_job_progress(safe: str, stage: str, task_id: str, meshy_status: str, progress: Any):
+def _set_job_progress(safe: str, stage: str, task_id: str, meshy_status: str, progress: Any, phase: str = "preview"):
     try:
         p = int(progress) if progress is not None else 0
     except Exception:
@@ -446,6 +501,7 @@ def _set_job_progress(safe: str, stage: str, task_id: str, meshy_status: str, pr
         "meshy_status": str(meshy_status or "PENDING"),
         "progress": p,
         "status": "RUNNING",
+        "phase": phase,
         "error": old_job.get("error", ""),
         # Keep last printed values so the terminal only shows NEW progress updates.
         "_last_logged_status": old_job.get("_last_logged_status"),
@@ -479,10 +535,44 @@ def _log_meshy_progress_once(safe: str, phase: str, task_id: str, meshy_status: 
     vprint(f"[meshy] {phase} {task_id} status={status} progress={p}", flush=True)
 
 
+def _meta_path(safe: str) -> str:
+    return os.path.join(MODEL_DIR, f"{safe}.meshy.json")
+
+
+def _load_meta(safe: str) -> Dict[str, Any]:
+    try:
+        with open(_meta_path(safe), "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _save_meta(safe: str, **fields):
+    meta = _load_meta(safe)
+    meta.update(fields)
+    with open(_meta_path(safe), "w", encoding="utf-8") as f:
+        json.dump(meta, f, indent=2)
+
+
+_CHARACTER_WORDS = re.compile(
+    r"\b(human|person|people|man|woman|boy|girl|child|kid|character|avatar|soldier|knight|"
+    r"warrior|wizard|robot|humanoid|zombie|player|worker|farmer|merchant|sailor|guard|lady|gentleman)\b",
+    re.IGNORECASE,
+)
+
+
+def _looks_like_character(prompt: str) -> bool:
+    return bool(_CHARACTER_WORDS.search(prompt or ""))
+
+
 def _generate_with_meshy_background(prompt: str, name: str, stage: str, art_style: str):
     safe = _safe_name(name)
     out_glb = os.path.join(MODEL_DIR, f"{safe}.glb")
     stage = (stage or MESHY_CFG["default_stage"]).lower()
+    # Preview = untextured mesh only; refine adds the textures. Force refine when always_texture is on,
+    # whatever stage the client or the LLM asked for.
+    if MESHY_CFG.get("always_texture", True):
+        stage = "refine"
 
     try:
         if not MESHY_API_KEY:
@@ -493,10 +583,14 @@ def _generate_with_meshy_background(prompt: str, name: str, stage: str, art_styl
             "meshy_status": "PENDING", "progress": 0, "error": "",
         }
 
-        preview_task_id = _meshy_create_task(
-            mode="preview",
-            payload={"prompt": prompt, "should_remesh": MESHY_CFG["should_remesh"], "target_formats": ["glb"]},
-        )
+        preview_payload = {"prompt": prompt, "should_remesh": MESHY_CFG["should_remesh"], "ai_model": MESHY_CFG.get("ai_model", "latest"), "model_type": MESHY_CFG.get("model_type", "standard"), "target_formats": ["glb"]}
+        # Characters generated in an A-pose rig much more reliably.
+        if MESHY_CFG.get("character_pose_mode") and _looks_like_character(prompt):
+            preview_payload["pose_mode"] = MESHY_CFG["character_pose_mode"]
+        preview_task_id = _meshy_create_task(mode="preview", payload=preview_payload)
+        # Remember the Meshy task ids so this model can be rigged/animated later.
+        _save_meta(safe, prompt=prompt, preview_task_id=preview_task_id, refine_task_id="",
+                   rig_task_id="", rig_expires_at=0)
         _set_job_progress(safe, stage, preview_task_id, "PENDING", 0)
 
         preview_task = None
@@ -528,9 +622,15 @@ def _generate_with_meshy_background(prompt: str, name: str, stage: str, art_styl
 
         refine_task_id = _meshy_create_task(
             mode="refine",
-            payload={"preview_task_id": preview_task_id, "enable_pbr": MESHY_CFG["enable_pbr"], "target_formats": ["glb"]},
+            payload={
+                "preview_task_id": preview_task_id,
+                "enable_pbr": MESHY_CFG["enable_pbr"],
+                "texture_prompt": (prompt or "")[:800],   # guides texturing with the same description
+                "target_formats": ["glb"],
+            },
         )
-        _set_job_progress(safe, stage, refine_task_id, "PENDING", 0)
+        _set_job_progress(safe, stage, refine_task_id, "PENDING", 0, phase="refine")
+        _save_meta(safe, refine_task_id=refine_task_id)
 
         refine_task = None
         deadline = time.time() + 30 * 60
@@ -538,7 +638,7 @@ def _generate_with_meshy_background(prompt: str, name: str, stage: str, art_styl
             t = _meshy_get_task(refine_task_id)
             meshy_status = t.get("status") or "PENDING"
             progress = t.get("progress") or 0
-            _set_job_progress(safe, stage, refine_task_id, meshy_status, progress)
+            _set_job_progress(safe, stage, refine_task_id, meshy_status, progress, phase="refine")
             _log_meshy_progress_once(safe, "refine", refine_task_id, meshy_status, progress)
             if meshy_status == "SUCCEEDED" and t.get("model_urls", {}).get("glb"):
                 refine_task = t
@@ -638,9 +738,15 @@ def text_to_3d(req: TextTo3DRequest, background_tasks: BackgroundTasks):
     job = jobs.get(safe)
 
     if job and job.get("status") == "RUNNING":
+        # Report one overall progress (preview 0-50 %, refine 50-100 %) and never "SUCCEEDED"
+        # while still running: otherwise the client thinks the job is done when the
+        # untextured preview finishes, before the textured refine has even started.
+        p = int(job.get("progress", 0) or 0)
+        if job.get("stage") == "refine":
+            p = 50 + p // 2 if job.get("phase") == "refine" else p // 2
         return JSONResponse(status_code=202, content={
-            "status": job.get("meshy_status", "IN_PROGRESS"),
-            "progress": int(job.get("progress", 0) or 0),
+            "status": "IN_PROGRESS",
+            "progress": min(p, 99),
         })
 
     if job and job.get("status") == "ERROR":
@@ -660,6 +766,251 @@ def text_to_3d(req: TextTo3DRequest, background_tasks: BackgroundTasks):
 
     background_tasks.add_task(_generate_with_meshy_background, req.prompt, req.name, stage, art_style)
     return JSONResponse(status_code=202, content={"status": "PENDING", "progress": 0})
+
+# =========================
+# RIGGING + ANIMATION (Meshy)
+# =========================
+# Flow: existing model -> Meshy Rigging (humanoids only) -> Meshy Animation (one library clip)
+#       -> animated GLB saved as GeneratedModels/<model>__<clip>.glb and served to Unity.
+
+MESHY_RIG_URL = f"{MESHY_BASE}/openapi/v1/rigging"
+MESHY_ANIM_URL = f"{MESHY_BASE}/openapi/v1/animations"
+MESHY_ANIM_LIBRARY_URL = f"{MESHY_BASE}/openapi/v1/animations/library"
+
+# Rig/animation jobs keyed by output name (<model>__<clip>)
+anim_jobs: Dict[str, Dict[str, Any]] = {}
+_anim_library_cache: Optional[list] = None
+
+# When no clip name matches the requested word, fall back to the first clip of this category.
+ANIMATION_CATEGORY_HINTS = {
+    "walk": "WalkAndRun", "walking": "WalkAndRun", "run": "WalkAndRun", "running": "WalkAndRun",
+    "jog": "WalkAndRun", "sprint": "WalkAndRun",
+    "dance": "Dancing", "dancing": "Dancing",
+    "fight": "Fighting", "punch": "Fighting", "kick": "Fighting", "attack": "Fighting", "box": "Fighting",
+}
+
+
+def _meshy_create(url: str, body: Dict[str, Any]) -> str:
+    resp = requests.post(url, headers=_meshy_headers(), json=body, timeout=120)
+    if not resp.ok:
+        raise RuntimeError(f"Meshy {resp.status_code}: {resp.text[:300]}")
+    task_id = resp.json().get("result")
+    if not task_id:
+        raise RuntimeError(f"Meshy create response missing 'result': {resp.text[:300]}")
+    return task_id
+
+
+def _meshy_wait(url: str, task_id: str, job_key: str, p_from: int, p_to: int, timeout_s: int = 20 * 60) -> Dict[str, Any]:
+    """Poll a Meshy v1 task until it finishes, mapping its 0-100 progress onto p_from..p_to."""
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        resp = requests.get(f"{url}/{task_id}", headers=_meshy_headers(), timeout=60)
+        if not resp.ok:
+            raise RuntimeError(f"Meshy {resp.status_code}: {resp.text[:300]}")
+        t = resp.json()
+        status = t.get("status") or "PENDING"
+        p = int(t.get("progress") or 0)
+        if job_key in anim_jobs:
+            anim_jobs[job_key]["progress"] = int(p_from + (p_to - p_from) * p / 100)
+        if status == "SUCCEEDED":
+            return t
+        if status in ("FAILED", "CANCELED"):
+            raise RuntimeError((t.get("task_error") or {}).get("message") or f"Meshy task {status}")
+        time.sleep(MESHY_CFG["poll_seconds"])
+    raise RuntimeError("Timed out waiting for Meshy task")
+
+
+def _animation_library() -> list:
+    """Meshy's animation library (free to list). Cached for the lifetime of the server."""
+    global _anim_library_cache
+    if _anim_library_cache is None:
+        resp = requests.get(MESHY_ANIM_LIBRARY_URL, headers=_meshy_headers(), timeout=60)
+        if not resp.ok:
+            raise RuntimeError(f"Meshy {resp.status_code}: {resp.text[:300]}")
+        data = resp.json()
+        if isinstance(data, dict):
+            data = data.get("result") or data.get("data") or data.get("items") or []
+        _anim_library_cache = data if isinstance(data, list) else []
+    return _anim_library_cache
+
+
+def _resolve_animation(animation: str):
+    """Map 'dance' / 'walk' / '92' to (action_id, clip name). Returns (None, None) if nothing matches."""
+    q = (animation or "").strip().lower()
+    if not q:
+        return None, None
+    lib = _animation_library()
+
+    if q.isdigit():
+        for a in lib:
+            if a.get("action_id") == int(q):
+                return a["action_id"], a.get("name") or q
+        return int(q), q
+
+    def name_key(a):
+        return str(a.get("name") or "").lower(), str(a.get("key") or "").lower()
+
+    tests = (
+        lambda n, k: q in (n, k),                         # exact
+        lambda n, k: n.startswith(q) or k.startswith(q),  # prefix
+        lambda n, k: q in n or q in k,                    # contains
+    )
+    for test in tests:
+        for a in lib:
+            n, k = name_key(a)
+            if test(n, k):
+                return a.get("action_id"), a.get("name") or q
+
+    for word in re.findall(r"[a-z]+", q):
+        category = ANIMATION_CATEGORY_HINTS.get(word)
+        if category:
+            for a in lib:
+                if a.get("category") == category:
+                    return a.get("action_id"), a.get("name") or q
+    return None, None
+
+
+def _glb_data_uri_input(safe: str) -> Dict[str, str]:
+    glb = os.path.join(MODEL_DIR, f"{safe}.glb")
+    if not os.path.exists(glb):
+        raise RuntimeError(f"No model file '{safe}.glb' in {MODEL_DIR}")
+    if os.path.getsize(glb) > 70 * 1024 * 1024:   # base64 grows ~33 %; Meshy allows 100 MB data URIs
+        raise RuntimeError(f"'{safe}.glb' is too large to upload for rigging (>70 MB)")
+    with open(glb, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode("ascii")
+    return {"model_url": "data:application/octet-stream;base64," + b64}
+
+
+def _create_rig(safe: str, job_key: str, height_m: float, p_to: int):
+    """Rig the model. Prefers the textured refine task id; falls back to uploading the GLB."""
+    meta = _load_meta(safe)
+    body = {"height_meters": height_m}
+    rig_id = None
+    if meta.get("refine_task_id"):
+        try:
+            rig_id = _meshy_create(MESHY_RIG_URL, {"input_task_id": meta["refine_task_id"], **body})
+        except RuntimeError as ex:
+            print(f"[rig] input_task_id rejected ({ex}); uploading the GLB instead", flush=True)
+    if rig_id is None:
+        rig_id = _meshy_create(MESHY_RIG_URL, {**_glb_data_uri_input(safe), **body})
+    task = _meshy_wait(MESHY_RIG_URL, rig_id, job_key, 0, p_to)
+    _save_meta(safe, rig_task_id=rig_id, rig_expires_at=int(task.get("expires_at") or 0))
+    return rig_id, task
+
+
+def _rig_and_animate_background(safe: str, out_key: str, action_id: Optional[int], height_m: float):
+    out_glb = os.path.join(MODEL_DIR, f"{out_key}.glb")
+    try:
+        if not MESHY_API_KEY:
+            raise RuntimeError("MESHY_API_KEY not set.")
+
+        # Reuse an earlier rig of this model while Meshy still keeps its files (10 min safety margin).
+        meta = _load_meta(safe)
+        rig_id = meta.get("rig_task_id") or None
+        rig_reused = bool(rig_id) and int(meta.get("rig_expires_at") or 0) > (time.time() + 600) * 1000
+        rig_task = None
+        if not rig_reused:
+            rig_id, rig_task = _create_rig(safe, out_key, height_m, p_to=50 if action_id is not None else 95)
+
+        if action_id is None:
+            if rig_task is None:
+                resp = requests.get(f"{MESHY_RIG_URL}/{rig_id}", headers=_meshy_headers(), timeout=60)
+                resp.raise_for_status()
+                rig_task = resp.json()
+            url = (rig_task.get("result") or {}).get("rigged_character_glb_url")
+        else:
+            p_from = 0 if rig_reused else 50
+            try:
+                anim_id = _meshy_create(MESHY_ANIM_URL, {"rig_task_id": rig_id, "action_id": action_id})
+            except RuntimeError:
+                if not rig_reused:
+                    raise
+                # The cached rig is no longer usable on Meshy's side: rig once more.
+                rig_id, _ = _create_rig(safe, out_key, height_m, p_to=50)
+                p_from = 50
+                anim_id = _meshy_create(MESHY_ANIM_URL, {"rig_task_id": rig_id, "action_id": action_id})
+            anim = _meshy_wait(MESHY_ANIM_URL, anim_id, out_key, p_from, 99)
+            url = (anim.get("result") or {}).get("animation_glb_url")
+
+        if not url:
+            raise RuntimeError("Meshy returned no GLB url")
+        _download_to_file(url, out_glb)
+        anim_jobs[out_key] = {"status": "DONE", "progress": 100, "error": ""}
+        print(f"[animate] done -> {out_glb}", flush=True)
+
+    except Exception as e:
+        msg = str(e)
+        if "422" in msg or "pose" in msg.lower():
+            msg += " (Rigging only works on humanoid, two-legged characters facing +Z.)"
+        print("[animate] ERROR:", msg, flush=True)
+        anim_jobs[out_key] = {"status": "ERROR", "progress": 0, "error": msg}
+
+
+class AnimateModelRequest(BaseModel):
+    name: str                              # existing generated model, e.g. Generated_Soldier
+    animation: Optional[str] = ""          # "walk", "dance", "92" ... ; "" = rig only
+    height_meters: Optional[float] = 1.7
+
+
+@app.post("/api/animate-model")
+def animate_model(req: AnimateModelRequest, background_tasks: BackgroundTasks):
+    """Start (or poll) rigging + animation of an existing model. Call repeatedly until SUCCEEDED."""
+    if not MESHY_API_KEY:
+        return JSONResponse(status_code=500, content={"status": "FAILED", "progress": 0, "message": "MESHY_API_KEY missing."})
+
+    safe = _safe_name(req.name)
+    wanted = (req.animation or "").strip()
+    try:
+        action_id, action_name = _resolve_animation(wanted)
+    except Exception as e:
+        return JSONResponse(status_code=502, content={"status": "FAILED", "progress": 0,
+                                                      "message": f"Could not load Meshy animation library: {e}"})
+    if wanted and action_id is None:
+        return JSONResponse(status_code=404, content={"status": "FAILED", "progress": 0,
+                                                      "message": f"No Meshy animation matches '{wanted}'. See /api/animations?search=..."})
+
+    out_key = f"{safe}__{_safe_name(action_name) if action_id is not None else 'rigged'}"
+    glb_filename = f"{out_key}.glb"
+
+    if os.path.exists(os.path.join(MODEL_DIR, glb_filename)):
+        return JSONResponse(status_code=200, content={
+            "status": "SUCCEEDED", "progress": 100, "animation": action_name or "rigged",
+            "downloadUrl": f"{PUBLIC_BASE_URL}/files/{glb_filename}",
+        })
+
+    job = anim_jobs.get(out_key)
+    if job and job.get("status") == "RUNNING":
+        return JSONResponse(status_code=202, content={"status": "IN_PROGRESS", "progress": min(int(job.get("progress", 0)), 99)})
+    if job and job.get("status") == "ERROR":
+        anim_jobs.pop(out_key, None)   # allow a fresh retry next time
+        return JSONResponse(status_code=500, content={"status": "FAILED", "progress": 0, "message": job.get("error", "Unknown error")})
+
+    if not os.path.exists(os.path.join(MODEL_DIR, f"{safe}.glb")):
+        return JSONResponse(status_code=404, content={"status": "FAILED", "progress": 0,
+                                                      "message": f"'{req.name}' is not a generated model on this server."})
+
+    print(f"[animate] start model={safe} animation={action_name or 'rig only'} (id={action_id})", flush=True)
+    anim_jobs[out_key] = {"status": "RUNNING", "progress": 0, "error": ""}
+    background_tasks.add_task(_rig_and_animate_background, safe, out_key, action_id, float(req.height_meters or 1.7))
+    return JSONResponse(status_code=202, content={"status": "PENDING", "progress": 0})
+
+
+@app.get("/api/animations")
+def list_animations(search: str = "", category: str = ""):
+    """Browse Meshy's animation library (free), e.g. /api/animations?search=dance or ?category=Dancing"""
+    try:
+        lib = _animation_library()
+    except Exception as e:
+        return JSONResponse(status_code=502, content={"error": str(e)})
+    q = search.strip().lower()
+    out = []
+    for a in lib:
+        if q and q not in str(a.get("name") or "").lower() and q not in str(a.get("key") or "").lower():
+            continue
+        if category and a.get("category") != category:
+            continue
+        out.append({k: a.get(k) for k in ("action_id", "name", "category", "sub_category", "preview_url")})
+    return out
 
 # =========================
 # POSTER IMAGE ENDPOINT
@@ -954,6 +1305,7 @@ def vision_describe(screenshots_b64: list[str], transcript: str, scene_object_na
     """
     if not screenshots_b64:
         return ""
+    screenshots_b64 = screenshots_b64[-2:]   # last 2 frames are enough for grounding
 
     try:
         content = []
@@ -1001,7 +1353,8 @@ def vision_describe(screenshots_b64: list[str], transcript: str, scene_object_na
         resp = client.chat.completions.create(
             model=OPENAI_CFG["vision_model"],
             response_format={"type": "json_object"},
-            max_tokens=OPENAI_CFG["vision_max_tokens"],
+            max_completion_tokens=OPENAI_CFG["vision_max_tokens"],
+            reasoning_effort=OPENAI_CFG.get("vision_reasoning_effort", "low"),
             messages=[{"role": "user", "content": content}],
         )
         return resp.choices[0].message.content.strip()
@@ -1134,6 +1487,25 @@ def _rewrite_resize_commands(commands: list, transcript: str, gaze_target: str =
     return rewritten
 
 
+# Optional GPT-generated behavior for every scene manipulation, including resizing.
+# Appended after the legacy examples so the latest instruction takes precedence.
+if AI_CONFIG.get("behavior", {}).get("generate_code_for_all_commands", False):
+    SYSTEM_PROMPT += """
+OVERRIDE: CODE-ONLY SCENE MANIPULATION MODE (supersedes earlier scale/set_dimensions rules and examples):
+For ALL scene changes (including scale, dimensions, move, rotate, change color, delete,
+spawn primitives, effects, placement and procedural motion such as spinning or bobbing),
+always return action=run_code.
+Never return scale or set_dimensions in this mode.
+Generate_model/create_poster/set_wall_texture still handle AI ASSET GENERATION.
+animate_model still handles skeletal animation of humanoid characters (walk, run, dance, wave...).
+For resize requests, put exact factors/metres and axis preservation in behaviour_prompt.
+Respect selected poster isolation: modify only the selected poster transform, never its parent.
+Examples: "make this chair bigger" -> run_code targets=["Chair"] with behaviour_prompt="In Start(), multiply only this.transform.localScale by 1.5 once."
+"poster 3x2 meters" -> run_code on the selected Poster object, adjust only its own transform to requested world-space dimensions using RuntimeBounds, preserve thickness, never modify parent.
+"move the cube 2 meters right" -> run_code on Cube, one-time relative translation in Start().
+For commands with multiple actions, output separate run_code commands where appropriate.
+"""
+
 def llm_decide(transcript: str, gaze_target: str = "none", vision_context: str = "", scene_object_names: list = None) -> dict:
     if not transcript:
         return {"commands": [{"action": "no_action", "reason": "empty transcript"}]}
@@ -1167,13 +1539,14 @@ def llm_decide(transcript: str, gaze_target: str = "none", vision_context: str =
                 {"role": "user", "content": user_message}
             ],
             max_completion_tokens=OPENAI_CFG["command_max_completion_tokens"],
+            reasoning_effort=OPENAI_CFG.get("command_reasoning_effort", "low"),
         )
 
         raw = response.choices[0].message.content.strip()
         parsed = extract_json(raw)
 
         commands = parsed.get("commands", [])
-        rewritten = _rewrite_resize_commands(commands, transcript, gaze_target)
+        rewritten = commands if AI_CONFIG.get("behavior", {}).get("generate_code_for_all_commands", False) else _rewrite_resize_commands(commands, transcript, gaze_target)
         if rewritten != commands:
             vprint("[Resize safety] Rewrote LLM resize command:", json.dumps(rewritten), flush=True)
         parsed["commands"] = rewritten
@@ -1200,14 +1573,11 @@ async def transcribe_only(
     without calling the LLM.
     """
     audio_bytes = await audio.read()
-    with open(TEMP_AUDIO_PATH, "wb") as f:
-        f.write(audio_bytes)
 
     gaze_target = gaze_target.strip() if gaze_target else "none"
 
     t0 = time.time()
-    segments, _info = whisper_model.transcribe(TEMP_AUDIO_PATH, beam_size=SPEECH_CFG["beam_size"], task=SPEECH_CFG["task"])
-    transcript = "".join(s.text for s in segments).strip()
+    transcript = transcribe_audio_bytes(audio_bytes)
     whisper_time = round(time.time() - t0, 3)
     print(f"[Whisper-only] ({whisper_time}s): '{transcript}'")
 
@@ -1297,6 +1667,10 @@ def _build_command_summary(cmd: dict, gaze_target: str = "") -> str:
         subject = _clean_short_text(cmd.get("prompt") or cmd.get("name") or "3D model", 70)
         return f"Generate 3D model of {subject}"
 
+    if action == "animate_model":
+        anim = _clean_short_text(cmd.get("animation") or "add skeleton", 40)
+        return f'Animate "{target}": {anim}' if target else f"Animate model: {anim}"
+
     if action == "run_code":
         behaviour = str(cmd.get("behaviour_prompt") or "")
         low = behaviour.lower()
@@ -1317,7 +1691,7 @@ def _build_command_summary(cmd: dict, gaze_target: str = "") -> str:
         if re.search(r"\b(move|position|place|put)\b", low):
             return f"Move{target_suffix}"
 
-    return _clean_short_text(f"Action{target_suffix}: {behaviour}", 60)    
+        return _clean_short_text(f"Action{target_suffix}: {behaviour}", 60)
 
     if action == "set_dimensions":
         w = cmd.get("width_m")
@@ -1371,9 +1745,101 @@ def _build_confirmation_message(commands: list, reasoning: str) -> str:
     return f"Execute the following action(s): {', '.join(actions)}?"
 
 
+
+# Live GPT transcription: Unity -> FastAPI HTTP chunks -> OpenAI WebSocket.
+# One upstream socket per VR user/recording. Keys never leave the Python server.
+class LiveSession:
+    def __init__(self, socket):
+        self.socket = socket
+        self.final_parts = []
+        self.partial = ""
+        self.errors = []
+        self.lock = asyncio.Lock()
+        self.reader = None
+
+live_sessions = {}
+
+async def _live_reader(s):
+    try:
+        async for raw in s.socket:
+            msg = json.loads(raw)
+            typ = msg.get("type", "")
+            if typ == "conversation.item.input_audio_transcription.delta":
+                s.partial += msg.get("delta", "")
+            elif typ == "conversation.item.input_audio_transcription.completed":
+                text = msg.get("transcript", "").strip()
+                if text:
+                    s.final_parts.append(text)
+                s.partial = ""
+            elif typ == "error":
+                s.errors.append(str(msg.get("error", msg)))
+    except Exception as exc:
+        s.errors.append(str(exc))
+
+@app.post("/api/live/start")
+async def live_start():
+    if not SPEECH_CFG.get("streaming_enabled", False):
+        raise HTTPException(409, "Enable speech.streaming_enabled in ai_models.json")
+    if not OPENAI_API_KEY:
+        raise HTTPException(500, "OPENAI_API_KEY not configured")
+    try:
+        ws = await websockets.connect(
+            "wss://api.openai.com/v1/realtime?intent=transcription",
+            additional_headers={"Authorization": "Bearer " + OPENAI_API_KEY},
+            max_size=2 ** 22,
+        )
+        await ws.send(json.dumps({"type":"session.update","session":{
+            "type":"transcription", "audio":{"input":{
+                "format":{"type":"audio/pcm","rate":24000},
+                "transcription": {
+                    "model":SPEECH_CFG.get("streaming_model","gpt-live-transcribe"),
+                    "delay":SPEECH_CFG.get("delay","low"),
+                    "prompt":SPEECH_CFG.get("context_prompt","Voice commands to edit objects in a Unity XR environment"),
+                }, "turn_detection":None}}}}))
+        sid=str(_uuid.uuid4())
+        s=LiveSession(ws)
+        live_sessions[sid]=s
+        s.reader=asyncio.create_task(_live_reader(s))
+        return {"session_id":sid}
+    except Exception as exc:
+        raise HTTPException(502, f"Live connection failed: {exc}")
+
+@app.post("/api/live/{sid}/audio")
+async def live_audio(sid: str, audio: bytes = Body(..., media_type="application/octet-stream")):
+    s=live_sessions.get(sid)
+    if s is None: raise HTTPException(404, "Unknown live session")
+    if len(audio)>262144: raise HTTPException(413, "Chunk too large")
+    if len(audio)%2: raise HTTPException(400, "PCM16 requires even byte count")
+    async with s.lock:
+        await s.socket.send(json.dumps({"type":"input_audio_buffer.append","audio":base64.b64encode(audio).decode("ascii")}))
+    return {"ok":True}
+
+@app.get("/api/live/{sid}/status")
+async def live_status(sid: str):
+    s=live_sessions.get(sid)
+    if s is None: raise HTTPException(404,"Unknown live session")
+    return {"partial":s.partial,"final":" ".join(s.final_parts),"errors":s.errors[-2:]}
+
+@app.post("/api/live/{sid}/finish")
+async def live_finish(sid: str):
+    s=live_sessions.pop(sid,None)
+    if s is None: raise HTTPException(404,"Unknown live session")
+    try:
+        async with s.lock:
+            await s.socket.send(json.dumps({"type":"input_audio_buffer.commit"}))
+        for _ in range(40):
+            await asyncio.sleep(.1)
+            if s.errors or s.final_parts: break
+        return {"transcript":" ".join(s.final_parts).strip(),"errors":s.errors[-2:]}
+    finally:
+        await s.socket.close()
+        if s.reader: s.reader.cancel()
+
+
 @app.post("/transcribe")
 async def transcribe(
-    audio: UploadFile = File(...),
+    audio: Optional[UploadFile] = File(default=None),
+    transcript_override: Optional[str] = Form(default=None),
     gaze_target: Optional[str] = Form(default="none"),
     screenshots_b64: Optional[str] = Form(default=""),
     scene_objects: Optional[str] = Form(default=""),
@@ -1384,8 +1850,7 @@ async def transcribe(
     """
     request_started = time.perf_counter()
 
-    with open(TEMP_AUDIO_PATH, "wb") as f:
-        f.write(await audio.read())
+    audio_bytes = await audio.read() if audio is not None else b""
 
     gaze_target       = gaze_target.strip() if gaze_target else "none"
     screenshots_raw   = (screenshots_b64 or "").strip()
@@ -1411,8 +1876,9 @@ async def transcribe(
             print(f"[Scene] Failed to parse scene_objects: {e}", flush=True)
 
     t0 = time.perf_counter()
-    segments, _info = whisper_model.transcribe(TEMP_AUDIO_PATH, beam_size=SPEECH_CFG["beam_size"], task=SPEECH_CFG["task"])
-    transcript = "".join(s.text for s in segments).strip()
+    # Blocking OpenAI/Whisper calls run in a worker thread so other users' requests are not queued.
+    transcript = (transcript_override.strip() if transcript_override
+                  else await asyncio.to_thread(transcribe_audio_bytes, audio_bytes))
     whisper_time = time.perf_counter() - t0
     vprint(f"[Whisper] ({whisper_time:.3f}s): '{transcript}'\n")
 
@@ -1420,13 +1886,18 @@ async def transcribe(
     vision_context = ""
     vision_time = 0.0
     if screenshots_list:
+        # Send vision only the relevant subset of scene names, not the full list.
+        vision_names = filter_scene_objects_for_llm(
+            scene_object_names, transcript, "", gaze_target, limit=120)
         tv = time.perf_counter()
-        vision_context = vision_describe(screenshots_list, transcript, scene_object_names)
+        vision_context = await asyncio.to_thread(
+            vision_describe, screenshots_list, transcript, vision_names)
         vision_time = time.perf_counter() - tv
         vprint(f"[Vision] ({vision_time:.3f}s): '{vision_context}'\n")
 
     t1 = time.perf_counter()
-    result = llm_decide(
+    result = await asyncio.to_thread(
+        llm_decide,
         transcript,
         gaze_target=gaze_target,
         vision_context=vision_context,
@@ -1578,10 +2049,18 @@ def cancel(req: ConfirmRequest):
 @app.get("/api/config/models")
 async def public_model_config():
     # Public model identifiers and tuning only: NEVER expose API keys or .env values.
+    # Re-read ai_models.json on every request so a changed code_model reaches Unity
+    # without restarting the server (fall back to the startup values if the file is invalid).
+    try:
+        cfg = load_ai_config()["openai"]
+    except Exception as ex:
+        print(f"[config] Could not re-read {CONFIG_PATH}: {ex}; using startup values", flush=True)
+        cfg = OPENAI_CFG
     return {"openai": {
-        "code_model": OPENAI_CFG["code_model"],
-        "code_max_tokens": OPENAI_CFG["code_max_tokens"],
-        "code_temperature": OPENAI_CFG["code_temperature"]
+        "code_model": cfg["code_model"],
+        "code_max_tokens": cfg.get("code_max_tokens", 3500),
+        "code_temperature": cfg.get("code_temperature", 0.2),
+        "code_reasoning_effort": cfg.get("code_reasoning_effort", "low")
     }}
 
 @app.get("/health")

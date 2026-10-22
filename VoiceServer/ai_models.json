@@ -1,32 +1,50 @@
 {
   "schema_version": 1,
   "speech": {
-    "engine": "faster-whisper",
-    "model": "small",
+    "engine": "openai_batch",
+    "model": "gpt-transcribe",
     "device": "cpu",
     "compute_type": "int8",
     "beam_size": 3,
-    "task": "translate"
+    "task": "transcribe",
+    "fallback_engine": "faster-whisper",
+    "fallback_model": "small",
+    "streaming_model": "gpt-live-transcribe",
+    "streaming_enabled": true,
+    "delay": "minimal",
+    "context_prompt": "Unity XR commands: GameObject, rotate, scale, texture, poster, mesh, collider, material, room, fountain"
   },
   "openai": {
-    "command_model": "o4-mini",
-    "vision_model": "gpt-4o",
-    "code_model": "gpt-4o",
-    "poster_model": "gpt-image-1",
-    "texture_model": "gpt-image-1",
+    "command_model": "gpt-6-luna",
+    "vision_model": "gpt-6-luna",
+    "code_model": "gpt-6.1-sol",
+    "poster_model": "gpt-image-2.5-flare",
+    "texture_model": "gpt-image-2.5-flare",
     "vision_max_tokens": 700,
+    "vision_reasoning_effort": "low",
     "command_max_completion_tokens": 3000,
-    "code_max_tokens": 2000,
-    "code_temperature": 0.2
+    "code_max_tokens": 3500,
+    "code_temperature": 0.2,
+    "code_reasoning_effort": "low",
+    "command_reasoning_effort": "low"
   },
   "meshy": {
     "api_version": "v2",
     "default_stage": "refine",
+    "always_texture": true,
     "should_remesh": true,
     "enable_pbr": true,
-    "poll_seconds": 3
+    "poll_seconds": 3,
+    "ai_model": "meshy-7.1",
+    "model_type": "standard",
+    "character_pose_mode": "a-pose"
   },
   "optimization": {
     "skip_vision_without_screenshots": true
+  },
+  "behavior": {
+    "generate_code_for_all_commands": true,
+    "mode": "gpt_runtime_code",
+    "notes": "Every Unity scene operation including scale and dimensions requests GPT-generated C#. Asset creation still uses Meshy/image API."
   }
 }
